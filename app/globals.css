@@ -8,6 +8,11 @@ html {
   -webkit-tap-highlight-color: transparent;
 }
 
+body {
+  background-color: #ffffff;
+}
+
 input[type='date']::-webkit-calendar-picker-indicator {
-  filter: invert(0.5);
+  filter: none;
+  opacity: 0.5;
 }

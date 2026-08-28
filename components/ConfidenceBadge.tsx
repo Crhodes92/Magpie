@@ -8,16 +8,16 @@ export default function ConfidenceBadge({ confidence }: { confidence: number }) 
 
   return (
     <span className={clsx(
-      'inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border',
-      high   && 'bg-green-900/50 text-green-300 border-green-700/50',
-      medium && 'bg-yellow-900/50 text-yellow-300 border-yellow-700/50',
-      low    && 'bg-red-900/50 text-red-400 border-red-700/50',
+      'inline-flex items-center gap-1.5 px-2 py-0.5 rounded border-2 text-xs font-bold',
+      high   && 'bg-green-100 text-green-800 border-green-400',
+      medium && 'bg-yellow-100 text-yellow-800 border-yellow-400',
+      low    && 'bg-red-100 text-red-700 border-red-400',
     )}>
       <span className={clsx(
         'inline-block w-1.5 h-1.5 rounded-full',
-        high ? 'bg-green-400' : medium ? 'bg-yellow-400' : 'bg-red-400'
+        high ? 'bg-green-500' : medium ? 'bg-yellow-500' : 'bg-red-500'
       )} />
-      {pct}% confident
+      {pct}%
     </span>
   )
 }

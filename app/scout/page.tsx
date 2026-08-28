@@ -56,7 +56,6 @@ export default function ScoutPage() {
 
       const controller = new AbortController()
       const timeout = setTimeout(() => controller.abort(), 30000)
-
       const res = await fetch('/api/identify', { method: 'POST', body: fd, signal: controller.signal })
       clearTimeout(timeout)
 
@@ -130,10 +129,10 @@ export default function ScoutPage() {
   const lowConfidence = result && result.confidence < 0.6
 
   return (
-    <div className="min-h-screen bg-zinc-950 pb-20 sm:pb-0">
+    <div className="min-h-screen bg-white pb-20 sm:pb-0">
       <div className="max-w-lg mx-auto px-4 py-6">
-        <h1 className="text-xl font-bold text-white mb-1">Scout</h1>
-        <p className="text-zinc-400 text-sm mb-6">Photo → identity + comp price in under 30s</p>
+        <h1 className="text-2xl font-black text-black mb-1">Scout</h1>
+        <p className="text-gray-500 text-sm mb-6">Photo → identity + comp price in under 30s</p>
 
         {/* Camera trigger */}
         {phase === 'idle' && (
@@ -146,11 +145,11 @@ export default function ScoutPage() {
               className="sr-only"
               onChange={handleFile}
             />
-            <div className="flex flex-col items-center justify-center gap-4 bg-zinc-900 border-2 border-dashed border-zinc-700 rounded-2xl py-16 hover:border-zinc-500 transition-colors">
-              <Camera size={48} className="text-zinc-500" />
+            <div className="flex flex-col items-center justify-center gap-4 bg-white border-2 border-dashed border-black rounded-2xl py-16 hover:bg-yellow-50 transition-colors">
+              <Camera size={48} className="text-gray-400" />
               <div className="text-center">
-                <p className="text-white font-medium">Take a photo</p>
-                <p className="text-zinc-500 text-sm mt-1">or tap to pick from camera roll</p>
+                <p className="text-black font-bold">Take a photo</p>
+                <p className="text-gray-400 text-sm mt-1">or tap to pick from camera roll</p>
               </div>
             </div>
           </label>
@@ -160,11 +159,11 @@ export default function ScoutPage() {
         {phase === 'loading' && (
           <div className="space-y-4">
             {preview && (
-              <img src={preview} alt="" className="w-full rounded-xl object-cover max-h-64" />
+              <img src={preview} alt="" className="w-full rounded-xl object-cover max-h-64 border-2 border-black" />
             )}
-            <div className="flex items-center gap-3 bg-zinc-900 rounded-xl px-4 py-4">
-              <Loader2 size={20} className="text-blue-400 animate-spin shrink-0" />
-              <span className="text-zinc-300 text-sm">Identifying item…</span>
+            <div className="flex items-center gap-3 bg-white border-2 border-black rounded-xl px-4 py-4 shadow-[4px_4px_0_0_#000]">
+              <Loader2 size={20} className="text-yellow-500 animate-spin shrink-0" />
+              <span className="text-black text-sm font-medium">Identifying item…</span>
             </div>
           </div>
         )}
@@ -172,13 +171,13 @@ export default function ScoutPage() {
         {/* Error */}
         {phase === 'error' && (
           <div className="space-y-4">
-            <div className="bg-red-950/50 border border-red-800 rounded-xl px-4 py-4 flex items-start gap-3">
-              <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
-              <p className="text-red-300 text-sm">{errorMsg}</p>
+            <div className="bg-red-50 border-2 border-red-500 rounded-xl px-4 py-4 flex items-start gap-3">
+              <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+              <p className="text-red-700 text-sm font-medium">{errorMsg}</p>
             </div>
             <button
               onClick={() => { setPhase('idle'); setPreview(null) }}
-              className="w-full bg-zinc-800 hover:bg-zinc-700 text-white py-3 rounded-xl font-medium transition-colors"
+              className="w-full bg-white border-2 border-black text-black font-bold py-3 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all"
             >
               Try again
             </button>
@@ -189,86 +188,81 @@ export default function ScoutPage() {
         {phase === 'result' && result && (
           <div className="space-y-4">
             {preview && (
-              <img src={preview} alt="" className="w-full rounded-xl object-cover max-h-64" />
+              <img src={preview} alt="" className="w-full rounded-xl object-cover max-h-64 border-2 border-black" />
             )}
 
-            <div className="bg-zinc-900 rounded-xl p-4 space-y-3">
+            <div className="bg-white border-2 border-black rounded-xl p-4 space-y-3 shadow-[4px_4px_0_0_#000]">
               <div className="flex items-start justify-between gap-2">
-                <h2 className="text-white font-semibold leading-snug">{result.title}</h2>
+                <h2 className="text-black font-bold leading-snug">{result.title}</h2>
                 <ConfidenceBadge confidence={result.confidence} />
               </div>
 
               {result.category && (
-                <p className="text-zinc-400 text-sm">{result.category}{result.brand ? ` · ${result.brand}` : ''}{result.model ? ` ${result.model}` : ''}</p>
+                <p className="text-gray-500 text-sm">{result.category}{result.brand ? ` · ${result.brand}` : ''}{result.model ? ` ${result.model}` : ''}</p>
               )}
 
               {result.condition_note && (
-                <p className="text-zinc-400 text-sm italic">{result.condition_note}</p>
+                <p className="text-gray-500 text-sm italic">{result.condition_note}</p>
               )}
 
-              {/* Low confidence warning */}
               {lowConfidence && (
-                <div className="flex items-start gap-2 bg-yellow-950/50 border border-yellow-800/50 rounded-lg px-3 py-2">
-                  <AlertTriangle size={14} className="text-yellow-400 shrink-0 mt-0.5" />
-                  <p className="text-yellow-300 text-xs">Low confidence — verify before buying. No max bid suggested.</p>
+                <div className="flex items-start gap-2 bg-yellow-50 border-2 border-yellow-400 rounded-lg px-3 py-2">
+                  <AlertTriangle size={14} className="text-yellow-600 shrink-0 mt-0.5" />
+                  <p className="text-yellow-800 text-xs font-medium">Low confidence — verify before buying. No max bid suggested.</p>
                 </div>
               )}
 
-              {/* Card details */}
               {result.lane === 'card' && result.card_details && (
-                <div className="bg-zinc-800/50 rounded-lg px-3 py-2 text-sm text-zinc-300 space-y-0.5">
-                  {result.card_details.card_name && <p><span className="text-zinc-500">Card:</span> {result.card_details.card_name}</p>}
-                  {result.card_details.set_name && <p><span className="text-zinc-500">Set:</span> {result.card_details.set_name}</p>}
-                  {result.card_details.card_number && <p><span className="text-zinc-500">Number:</span> {result.card_details.card_number}</p>}
-                  {result.card_details.printing && <p><span className="text-zinc-500">Printing:</span> {result.card_details.printing}</p>}
-                  {result.card_details.language && <p><span className="text-zinc-500">Language:</span> {result.card_details.language}</p>}
+                <div className="bg-gray-50 border-2 border-black rounded-lg px-3 py-2 text-sm space-y-0.5">
+                  {result.card_details.card_name && <p><span className="text-gray-400">Card:</span> <span className="text-black font-medium">{result.card_details.card_name}</span></p>}
+                  {result.card_details.set_name && <p><span className="text-gray-400">Set:</span> <span className="text-black font-medium">{result.card_details.set_name}</span></p>}
+                  {result.card_details.card_number && <p><span className="text-gray-400">Number:</span> <span className="text-black font-medium">{result.card_details.card_number}</span></p>}
+                  {result.card_details.printing && <p><span className="text-gray-400">Printing:</span> <span className="text-black font-medium">{result.card_details.printing}</span></p>}
+                  {result.card_details.language && <p><span className="text-gray-400">Language:</span> <span className="text-black font-medium">{result.card_details.language}</span></p>}
                 </div>
               )}
 
-              {/* AI value estimate */}
               {(result.est_value_low != null || result.est_value_high != null) && (
-                <div className="bg-zinc-800/50 rounded-lg px-3 py-2 space-y-1">
-                  <p className="text-xs text-zinc-500 font-medium uppercase tracking-wide">AI estimate · verify on eBay</p>
-                  <p className="text-white font-semibold text-lg">
+                <div className="bg-yellow-50 border-2 border-black rounded-lg px-3 py-2 space-y-1">
+                  <p className="text-xs text-gray-500 font-bold uppercase tracking-wide">AI estimate · verify on eBay</p>
+                  <p className="text-black font-black text-xl">
                     {result.est_value_low != null ? `$${result.est_value_low}` : '?'}
                     {' – '}
                     {result.est_value_high != null ? `$${result.est_value_high}` : '?'}
-                    <span className="text-zinc-400 font-normal text-sm ml-1">sold range</span>
+                    <span className="text-gray-400 font-normal text-sm ml-1">sold range</span>
                   </p>
                   {!lowConfidence && result.est_value_low != null && (
-                    <p className="text-blue-400 text-sm">Max bid: <span className="font-semibold">${(result.est_value_low * 0.4).toFixed(2)}</span></p>
+                    <p className="text-black text-sm font-bold">Max bid: <span className="text-yellow-600">${(result.est_value_low * 0.4).toFixed(2)}</span></p>
                   )}
                 </div>
               )}
 
-              {/* eBay sold comps */}
               <a
                 href={buildEbayUrl(result.ebay_query)}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center justify-between w-full bg-blue-950/50 hover:bg-blue-900/50 border border-blue-800/50 rounded-lg px-3 py-2.5 transition-colors"
+                className="flex items-center justify-between w-full bg-white border-2 border-black rounded-lg px-3 py-2.5 hover:bg-yellow-50 transition-colors"
               >
-                <span className="text-blue-300 text-sm font-medium">View sold comps on eBay</span>
-                <ExternalLink size={14} className="text-blue-400" />
+                <span className="text-black text-sm font-bold">View sold comps on eBay</span>
+                <ExternalLink size={14} className="text-gray-400" />
               </a>
 
-              <p className="text-zinc-600 text-xs">{result.reasoning}</p>
+              <p className="text-gray-400 text-xs">{result.reasoning}</p>
             </div>
 
-            {/* Buy / Pass */}
             <div className="grid grid-cols-2 gap-3">
               <button
                 onClick={() => handleDecision(false)}
                 disabled={saving}
-                className="flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 disabled:opacity-50 text-white font-medium py-4 rounded-xl transition-colors"
+                className="flex items-center justify-center gap-2 bg-white border-2 border-black text-black font-bold py-4 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50"
               >
-                <XCircle size={18} className="text-red-400" />
+                <XCircle size={18} className="text-red-500" />
                 Pass
               </button>
               <button
                 onClick={() => handleDecision(true)}
                 disabled={saving}
-                className="flex items-center justify-center gap-2 bg-green-700 hover:bg-green-600 disabled:opacity-50 text-white font-medium py-4 rounded-xl transition-colors"
+                className="flex items-center justify-center gap-2 bg-green-400 border-2 border-black text-black font-bold py-4 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50"
               >
                 {saving ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle size={18} />}
                 Buy
@@ -277,7 +271,7 @@ export default function ScoutPage() {
 
             <button
               onClick={() => { setPhase('idle'); setPreview(null); setResult(null) }}
-              className="w-full text-zinc-500 hover:text-zinc-300 text-sm py-2 transition-colors"
+              className="w-full text-gray-400 hover:text-black text-sm py-2 transition-colors"
             >
               Scan another
             </button>

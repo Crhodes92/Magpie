@@ -13,7 +13,6 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-
     const supabase = createClient()
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) {
@@ -25,14 +24,16 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-white mb-1">Reseller</h1>
-        <p className="text-zinc-400 text-sm mb-8">Sign in to continue</p>
+        <h1 className="text-4xl font-black text-black mb-1 tracking-tight">
+          Magpie<span className="text-yellow-400">.</span>
+        </h1>
+        <p className="text-gray-500 text-sm mb-8">Sign in to continue</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-zinc-300 mb-1">Email</label>
+            <label htmlFor="email" className="block text-sm font-medium text-black mb-1">Email</label>
             <input
               id="email"
               type="email"
@@ -40,13 +41,13 @@ export default function LoginPage() {
               onChange={e => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-white border-2 border-black rounded-lg px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="you@example.com"
             />
           </div>
 
           <div>
-            <label htmlFor="password" className="block text-sm text-zinc-300 mb-1">Password</label>
+            <label htmlFor="password" className="block text-sm font-medium text-black mb-1">Password</label>
             <input
               id="password"
               type="password"
@@ -54,19 +55,17 @@ export default function LoginPage() {
               onChange={e => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              className="w-full bg-white border-2 border-black rounded-lg px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="••••••••"
             />
           </div>
 
-          {error && (
-            <p className="text-red-400 text-sm">{error}</p>
-          )}
+          {error && <p className="text-red-600 text-sm font-medium">{error}</p>}
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3 rounded-lg transition-colors"
+            className="w-full bg-yellow-400 text-black border-2 border-black font-bold py-3 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50"
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>

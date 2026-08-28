@@ -6,14 +6,14 @@ import './globals.css'
 const geist = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Reseller',
+  title: 'Magpie',
   description: 'Scout, intake, and track your resale inventory',
   manifest: '/manifest.json',
-  appleWebApp: { capable: true, statusBarStyle: 'black-translucent', title: 'Reseller' },
+  appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Magpie' },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#09090b',
+  themeColor: '#facc15',
   width: 'device-width',
   initialScale: 1,
 }
@@ -21,7 +21,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${geist.variable} h-full`}>
-      <body className="min-h-full bg-zinc-950 antialiased">
+      <body className="min-h-full bg-white antialiased">
         <Nav />
         <main className="sm:pt-0">{children}</main>
       </body>

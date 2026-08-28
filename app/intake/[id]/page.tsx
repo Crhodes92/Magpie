@@ -29,8 +29,6 @@ interface PhotoPreview {
   isPrimary: boolean
 }
 
-type Mode = 'new' | 'edit'
-
 export default function IntakePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const isNew = id === 'new'
@@ -40,7 +38,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const [saving, setSaving] = useState(false)
   const [uploadingPhotos, setUploadingPhotos] = useState(false)
 
-  // Core fields
   const [lane, setLane] = useState<ItemLane>('general')
   const [title, setTitle] = useState('')
   const [category, setCategory] = useState('')
@@ -57,7 +54,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState('acquired')
 
-  // Card fields
   const [setName, setSetName] = useState('')
   const [cardNumber, setCardNumber] = useState('')
   const [cardName, setCardName] = useState('')
@@ -67,7 +63,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const [grader, setGrader] = useState('')
   const [grade, setGrade] = useState('')
 
-  // Photos
   const [pendingPhotos, setPendingPhotos] = useState<PhotoPreview[]>([])
   const [existingPhotos, setExistingPhotos] = useState<{ id: string; url: string; is_primary: boolean }[]>([])
 
@@ -101,7 +96,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     if (isNew) return
 
-    // Use scout result stored in sessionStorage for instant prefill
     const prefillJson = sessionStorage.getItem('scout-prefill')
     if (prefillJson) {
       try {
@@ -149,7 +143,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
               grade: null,
             } : null,
           })
-          // Load the scout photo directly (stored in sessionStorage to survive navigation)
           if (photoDataUrl) {
             fetch(photoDataUrl)
               .then(r => r.blob())
@@ -162,20 +155,10 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
       } catch {}
     }
 
-    // Fallback: fetch from API (for editing existing items)
     fetch(`/api/items/${id}`)
-      .then(r => {
-        if (!r.ok) throw new Error(`${r.status}`)
-        return r.json()
-      })
-      .then((item: Item) => {
-        applyItem(item)
-        setLoading(false)
-      })
-      .catch(err => {
-        console.error('[intake] fetch failed:', err)
-        setLoading(false)
-      })
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
+      .then((item: Item) => { applyItem(item); setLoading(false) })
+      .catch(err => { console.error('[intake] fetch failed:', err); setLoading(false) })
   }, [id, isNew])
 
   async function addPhotos(e: React.ChangeEvent<HTMLInputElement>) {
@@ -238,21 +221,10 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
 
     let itemId = isNew ? null : id
     if (isNew) {
-      const res = await fetch('/api/items', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
-      if (res.ok) {
-        const item = await res.json()
-        itemId = item.id
-      }
+      const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+      if (res.ok) { const item = await res.json(); itemId = item.id }
     } else {
-      await fetch(`/api/items/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
-      })
+      await fetch(`/api/items/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
     }
 
     if (itemId && pendingPhotos.length > 0) {
@@ -267,36 +239,36 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-zinc-950 flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
-  const inputClass = "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2.5 text-white text-sm placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
-  const labelClass = "block text-xs text-zinc-400 mb-1"
+  const inputClass = "w-full bg-white border-2 border-black rounded-lg px-3 py-2.5 text-black text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
+  const labelClass = "block text-xs text-gray-500 mb-1 font-medium"
 
   return (
-    <div className="min-h-screen bg-zinc-950 pb-24 sm:pb-8">
+    <div className="min-h-screen bg-white pb-24 sm:pb-8">
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <Link href={isNew ? '/inventory' : `/inventory/${id}`} className="text-zinc-400 hover:text-white transition-colors">
+          <Link href={isNew ? '/inventory' : `/inventory/${id}`} className="text-gray-400 hover:text-black transition-colors">
             <ArrowLeft size={20} />
           </Link>
-          <h1 className="text-xl font-bold text-white">{isNew ? 'Add item' : 'Edit item'}</h1>
+          <h1 className="text-2xl font-black text-black">{isNew ? 'Add item' : 'Edit item'}</h1>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Lane toggle */}
           <div>
             <label className={labelClass}>Lane</label>
-            <div className="flex rounded-lg overflow-hidden border border-zinc-700">
+            <div className="flex rounded-xl overflow-hidden border-2 border-black">
               {(['general', 'card'] as ItemLane[]).map(l => (
                 <button
                   key={l}
                   type="button"
                   onClick={() => setLane(l)}
-                  className={`flex-1 py-2.5 text-sm font-medium transition-colors ${lane === l ? 'bg-blue-600 text-white' : 'bg-zinc-800 text-zinc-400 hover:text-white'}`}
+                  className={`flex-1 py-2.5 text-sm font-bold transition-colors ${lane === l ? 'bg-yellow-400 text-black' : 'bg-white text-gray-400 hover:text-black'}`}
                 >
                   {l === 'card' ? 'Trading Card' : 'General'}
                 </button>
@@ -309,28 +281,28 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
             <label className={labelClass}>Photos</label>
             <div className="flex gap-2 flex-wrap">
               {existingPhotos.map(p => (
-                <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-700">
+                <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-black">
                   <img src={p.url} alt="" className="w-full h-full object-cover" />
-                  {p.is_primary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-blue-600/80 text-white py-0.5">Primary</span>}
+                  {p.is_primary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-yellow-400 text-black font-bold py-0.5">Primary</span>}
                 </div>
               ))}
               {pendingPhotos.map((p, i) => (
-                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border border-zinc-700">
+                <div key={i} className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-black">
                   <img src={p.url} alt="" className="w-full h-full object-cover" />
                   <button
                     type="button"
                     onClick={() => setPrimary(i)}
-                    className="absolute top-1 right-1 text-yellow-400 hover:text-yellow-300"
+                    className="absolute top-1 right-1 text-yellow-500 hover:text-yellow-400"
                     title="Set as primary"
                   >
                     <Star size={14} fill={p.isPrimary ? 'currentColor' : 'none'} />
                   </button>
-                  {p.isPrimary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-blue-600/80 text-white py-0.5">Primary</span>}
+                  {p.isPrimary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-yellow-400 text-black font-bold py-0.5">Primary</span>}
                 </div>
               ))}
-              <label className="w-20 h-20 rounded-lg border-2 border-dashed border-zinc-700 hover:border-zinc-500 flex flex-col items-center justify-center cursor-pointer transition-colors">
-                <Camera size={18} className="text-zinc-500" />
-                <span className="text-xs text-zinc-500 mt-1">Add</span>
+              <label className="w-20 h-20 rounded-lg border-2 border-dashed border-black hover:bg-yellow-50 flex flex-col items-center justify-center cursor-pointer transition-colors">
+                <Camera size={18} className="text-gray-400" />
+                <span className="text-xs text-gray-400 mt-1 font-medium">Add</span>
                 <input type="file" accept="image/*" multiple className="sr-only" onChange={addPhotos} />
               </label>
             </div>
@@ -340,13 +312,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
           <div className="space-y-3">
             <div>
               <label className={labelClass}>Title *</label>
-              <input
-                type="text"
-                value={title}
-                onChange={e => setTitle(e.target.value)}
-                placeholder="e.g. Charizard Base Set Holo"
-                className={inputClass}
-              />
+              <input type="text" value={title} onChange={e => setTitle(e.target.value)} placeholder="e.g. Charizard Base Set Holo" className={inputClass} />
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -370,8 +336,8 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
 
           {/* Card details */}
           {lane === 'card' && (
-            <div className="space-y-3 border border-zinc-700/50 rounded-xl p-4">
-              <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Card details</p>
+            <div className="space-y-3 border-2 border-black rounded-xl p-4 bg-yellow-50">
+              <p className="text-xs font-black text-black uppercase tracking-wide">Card details</p>
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Card name</label>
@@ -405,9 +371,9 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
                     type="checkbox"
                     checked={isGraded}
                     onChange={e => setIsGraded(e.target.checked)}
-                    className="w-4 h-4 rounded border-zinc-600 bg-zinc-800 text-blue-600 focus:ring-blue-500"
+                    className="w-4 h-4 rounded border-2 border-black bg-white text-yellow-400 focus:ring-yellow-400"
                   />
-                  <label htmlFor="graded" className="text-sm text-zinc-300">Graded</label>
+                  <label htmlFor="graded" className="text-sm text-black font-medium">Graded</label>
                 </div>
                 {isGraded && (
                   <>
@@ -433,12 +399,12 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
 
           {/* Acquisition */}
           <div className="space-y-3">
-            <p className="text-xs font-medium text-zinc-400 uppercase tracking-wide">Acquisition</p>
+            <p className="text-xs font-black text-black uppercase tracking-wide">Acquisition</p>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className={labelClass}>Cost paid *</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm">$</span>
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
                   <input type="number" step="0.01" min="0" value={acquiredPrice} onChange={e => setAcquiredPrice(e.target.value)} className={`${inputClass} pl-7`} placeholder="0.00" />
                 </div>
               </div>
@@ -465,7 +431,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
           <button
             type="submit"
             disabled={saving || uploadingPhotos}
-            className="w-full bg-blue-600 hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-medium py-3.5 rounded-xl transition-colors flex items-center justify-center gap-2"
+            className="w-full bg-yellow-400 text-black border-2 border-black font-black py-3.5 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
           >
             {saving || uploadingPhotos ? (
               <>
