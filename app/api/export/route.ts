@@ -53,7 +53,7 @@ export async function GET(req: NextRequest) {
   return new NextResponse(csv, {
     headers: {
       'Content-Type': 'text/csv',
-      'Content-Disposition': `attachment; filename="reseller-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+      'Content-Disposition': `attachment; filename="magpie-export-${new Date().toISOString().slice(0, 10)}.csv"`,
     },
   })
 }
