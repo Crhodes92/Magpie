@@ -10,10 +10,11 @@ export const metadata: Metadata = {
   description: 'Scout, intake, and track your resale inventory',
   manifest: '/manifest.json',
   appleWebApp: { capable: true, statusBarStyle: 'default', title: 'Magpie' },
+  icons: { apple: '/Logo.png' },
 }
 
 export const viewport: Viewport = {
-  themeColor: '#facc15',
+  themeColor: '#FFCC00',
   width: 'device-width',
   initialScale: 1,
 }

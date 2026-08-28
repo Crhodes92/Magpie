@@ -1,21 +1,21 @@
 {
-  "name": "Reseller",
-  "short_name": "Reseller",
-  "description": "Scout and track your resale inventory",
+  "name": "Magpie",
+  "short_name": "Magpie",
+  "description": "Find. Price. Profit.",
   "start_url": "/scout",
   "display": "standalone",
-  "background_color": "#09090b",
-  "theme_color": "#09090b",
+  "background_color": "#ffffff",
+  "theme_color": "#FFCC00",
   "orientation": "portrait",
   "icons": [
     {
-      "src": "/icon-192.png",
+      "src": "/Logo.png",
       "sizes": "192x192",
       "type": "image/png",
-      "purpose": "any maskable"
+      "purpose": "any"
     },
     {
-      "src": "/icon-512.png",
+      "src": "/Logo.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

@@ -26,9 +26,7 @@ export default function LoginPage() {
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
-        <h1 className="text-4xl font-black text-black mb-1 tracking-tight">
-          Magpie<span className="text-yellow-400">.</span>
-        </h1>
+        <img src="/Name+Logo.png" alt="Magpie" className="h-20 w-auto object-contain mb-6" />
         <p className="text-gray-500 text-sm mb-8">Sign in to continue</p>
 
         <form onSubmit={handleLogin} className="space-y-4">
