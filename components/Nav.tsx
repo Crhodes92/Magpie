@@ -3,12 +3,11 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { Camera, Layers, Package, LayoutDashboard, LogOut } from 'lucide-react'
+import { Camera, Package, LayoutDashboard, LogOut } from 'lucide-react'
 import clsx from 'clsx'
 
 const links = [
   { href: '/scout', label: 'Scout', icon: Camera },
-  { href: '/batch', label: 'Batch', icon: Layers },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
 ]
