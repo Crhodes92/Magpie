@@ -20,20 +20,24 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [haulName, setHaulName] = useState('')
   const [rows, setRows] = useState<Row[]>([])
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [submitError, setSubmitError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch(`/api/hauls/${haulId}?status=scouted`)
-      .then(r => r.json())
-      .then(data => {
+      .then(async r => {
+        const data = await r.json()
+        if (!r.ok) throw new Error(data?.error ?? `Failed to load haul (${r.status})`)
         setHaulName(data.name ?? 'Haul')
         const items: Item[] = data.items ?? []
         setRows(items.map(item => {
           const lowConfidence = (item.ai_confidence ?? 0) < MAX_BID_CONFIDENCE_THRESHOLD || item.max_bid == null
           return { item, checked: true, price: lowConfidence ? 0 : (item.max_bid ?? 0), lowConfidence }
         }))
-        setLoading(false)
       })
+      .catch(err => setLoadError(err instanceof Error ? err.message : 'Failed to load haul'))
+      .finally(() => setLoading(false))
   }, [haulId])
 
   const total = useMemo(
@@ -67,15 +71,19 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
   async function confirm() {
     setSubmitting(true)
+    setSubmitError(null)
     const decisions = rows.map(r => ({ item_id: r.item.id, bought: r.checked, price: r.checked ? r.price : null }))
-    const res = await fetch(`/api/hauls/${haulId}/checkout`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ decisions }),
-    })
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/hauls/${haulId}/checkout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ decisions }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error ?? `Checkout failed (${res.status})`)
       router.push(`/hauls?haul=${haulId}`)
-    } else {
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Checkout failed')
       setSubmitting(false)
     }
   }
@@ -84,6 +92,17 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-red-50 border-2 border-red-500 rounded-xl px-4 py-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-red-700 text-sm font-medium">{loadError}</p>
+        </div>
       </div>
     )
   }
@@ -180,6 +199,12 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
       {/* Confirm bar */}
       <div className="fixed bottom-0 inset-x-0 bg-white border-t-2 border-black p-4 sm:static sm:border-0 sm:p-0 sm:max-w-lg sm:mx-auto sm:px-4">
+        {submitError && (
+          <div className="flex items-start gap-2 bg-red-50 border-2 border-red-500 rounded-lg px-3 py-2 mb-3">
+            <AlertTriangle size={14} className="text-red-500 shrink-0 mt-0.5" />
+            <p className="text-red-700 text-xs font-medium">{submitError}</p>
+          </div>
+        )}
         <button
           onClick={confirm}
           disabled={submitting}

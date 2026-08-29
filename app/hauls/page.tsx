@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Filter, Download, Plus, Package, ArrowLeft, ArrowRight } from 'lucide-react'
+import { Search, Filter, Download, Plus, Package, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import type { Item, ItemStatus } from '@/types'
 
@@ -169,6 +169,7 @@ function HaulsPageInner() {
   const [search, setSearch] = useState('')
   const [debouncedSearch, setDebouncedSearch] = useState('')
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [hauls, setHauls] = useState<HaulSummary[]>([])
   const [ungrouped, setUngrouped] = useState<HaulSummary | null>(null)
@@ -187,25 +188,31 @@ function HaulsPageInner() {
     return params
   }, [statusFilter, laneFilter])
 
+  async function readOrThrow(res: Response) {
+    const body = await res.json()
+    if (!res.ok) throw new Error(body?.error ?? `Request failed (${res.status})`)
+    return body
+  }
+
   const load = useCallback(async () => {
     setLoading(true)
-    if (debouncedSearch) {
-      const params = filterParams()
-      params.set('q', debouncedSearch)
-      const res = await fetch(`/api/items?${params}`)
-      if (res.ok) setFlatItems(await res.json())
-    } else if (openHaulId) {
-      const params = filterParams()
-      const res = await fetch(`/api/hauls/${openHaulId}?${params}`)
-      if (res.ok) setOpenHaul(await res.json())
-    } else {
-      const params = filterParams()
-      const res = await fetch(`/api/hauls?${params}`)
-      if (res.ok) {
-        const data = await res.json()
+    setError(null)
+    try {
+      if (debouncedSearch) {
+        const params = filterParams()
+        params.set('q', debouncedSearch)
+        setFlatItems(await readOrThrow(await fetch(`/api/items?${params}`)))
+      } else if (openHaulId) {
+        const params = filterParams()
+        setOpenHaul(await readOrThrow(await fetch(`/api/hauls/${openHaulId}?${params}`)))
+      } else {
+        const params = filterParams()
+        const data = await readOrThrow(await fetch(`/api/hauls?${params}`))
         setHauls(data.hauls ?? [])
         setUngrouped(data.ungrouped ?? null)
       }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load')
     }
     setLoading(false)
   }, [debouncedSearch, openHaulId, filterParams])
@@ -312,7 +319,12 @@ function HaulsPageInner() {
           </div>
         )}
 
-        {loading ? (
+        {error ? (
+          <div className="bg-red-50 border-2 border-red-500 rounded-xl px-4 py-4 flex items-start gap-3">
+            <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+            <p className="text-red-700 text-sm font-medium">{error}</p>
+          </div>
+        ) : loading ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[...Array(6)].map((_, i) => (
               <div key={i} className="aspect-[3/4] bg-gray-100 rounded-xl animate-pulse border-2 border-gray-200" />

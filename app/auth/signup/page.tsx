@@ -4,38 +4,62 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 
-export default function LoginPage() {
+export default function SignupPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
+  const [confirmSent, setConfirmSent] = useState(false)
 
-  async function handleLogin(e: React.FormEvent) {
+  async function handleSignup(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setError('')
     try {
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+      })
       if (error) {
         setError(error.message)
         setLoading(false)
-      } else {
+      } else if (data.session) {
+        // Email confirmation is disabled on this project — signed in immediately.
         window.location.href = '/scout'
+      } else {
+        setConfirmSent(true)
+        setLoading(false)
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Sign in failed')
+      setError(err instanceof Error ? err.message : 'Sign up failed')
       setLoading(false)
     }
+  }
+
+  if (confirmSent) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center p-4">
+        <div className="w-full max-w-sm">
+          <img src="/Name+Logo.png" alt="Magpie" className="h-20 w-auto object-contain mb-6" />
+          <p className="text-black font-bold mb-2">Check your email</p>
+          <p className="text-gray-500 text-sm">
+            We sent a confirmation link to <span className="font-medium text-black">{email}</span>.
+            Click it to finish creating your account.
+          </p>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="min-h-screen bg-white flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <img src="/Name+Logo.png" alt="Magpie" className="h-20 w-auto object-contain mb-6" />
-        <p className="text-gray-500 text-sm mb-8">Sign in to continue</p>
+        <p className="text-gray-500 text-sm mb-8">Create an account</p>
 
-        <form onSubmit={handleLogin} className="space-y-4">
+        <form onSubmit={handleSignup} className="space-y-4">
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-black mb-1">Email</label>
             <input
@@ -58,7 +82,8 @@ export default function LoginPage() {
               value={password}
               onChange={e => setPassword(e.target.value)}
               required
-              autoComplete="current-password"
+              minLength={6}
+              autoComplete="new-password"
               className="w-full bg-white border-2 border-black rounded-lg px-4 py-3 text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
               placeholder="••••••••"
             />
@@ -71,13 +96,13 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-yellow-400 text-black border-2 border-black font-bold py-3 rounded-xl shadow-[4px_4px_0_0_#000] hover:shadow-none hover:translate-x-[4px] hover:translate-y-[4px] transition-all disabled:opacity-50"
           >
-            {loading ? 'Signing in…' : 'Sign in'}
+            {loading ? 'Creating account…' : 'Sign up'}
           </button>
         </form>
 
         <p className="text-gray-500 text-sm mt-6 text-center">
-          Don&apos;t have an account?{' '}
-          <Link href="/auth/signup" className="text-black font-medium underline">Sign up</Link>
+          Already have an account?{' '}
+          <Link href="/auth/login" className="text-black font-medium underline">Sign in</Link>
         </p>
       </div>
     </div>

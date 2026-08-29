@@ -1,32 +1,44 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Sliders, Check } from 'lucide-react'
+import { Sliders, Check, AlertTriangle } from 'lucide-react'
 import { DEFAULT_MAX_BID_PCT, MAX_BID_PCT_MIN, MAX_BID_PCT_MAX } from '@/lib/max-bid'
 
 export default function SettingsPage() {
   const [pct, setPct] = useState<number>(DEFAULT_MAX_BID_PCT)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
   const [saved, setSaved] = useState(false)
+  const [saveError, setSaveError] = useState<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
-      .then(r => r.json())
-      .then(d => { setPct(d.max_bid_pct ?? DEFAULT_MAX_BID_PCT); setLoading(false) })
+      .then(async r => {
+        const body = await r.json()
+        if (!r.ok) throw new Error(body?.error ?? `Failed to load settings (${r.status})`)
+        setPct(body.max_bid_pct ?? DEFAULT_MAX_BID_PCT)
+      })
+      .catch(err => setLoadError(err instanceof Error ? err.message : 'Failed to load settings'))
+      .finally(() => setLoading(false))
   }, [])
 
   const save = useCallback((value: number) => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
     saveTimer.current = setTimeout(async () => {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ max_bid_pct: value }),
-      })
-      if (res.ok) {
+      try {
+        const res = await fetch('/api/settings', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ max_bid_pct: value }),
+        })
+        const body = await res.json()
+        if (!res.ok) throw new Error(body?.error ?? `Failed to save (${res.status})`)
+        setSaveError(null)
         setSaved(true)
         setTimeout(() => setSaved(false), 1500)
+      } catch (err) {
+        setSaveError(err instanceof Error ? err.message : 'Failed to save')
       }
     }, 400)
   }, [])
@@ -43,6 +55,17 @@ export default function SettingsPage() {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (loadError) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-red-50 border-2 border-red-500 rounded-xl px-4 py-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-red-700 text-sm font-medium">{loadError}</p>
+        </div>
       </div>
     )
   }
@@ -67,6 +90,11 @@ export default function SettingsPage() {
             {saved && (
               <span className="flex items-center gap-1 text-xs font-bold text-green-600">
                 <Check size={13} /> Saved
+              </span>
+            )}
+            {saveError && (
+              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
+                <AlertTriangle size={13} /> {saveError}
               </span>
             )}
           </div>

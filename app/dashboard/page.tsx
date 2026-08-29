@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Download, TrendingUp, Clock, Target } from 'lucide-react'
+import { Download, TrendingUp, Clock, Target, AlertTriangle } from 'lucide-react'
 import type { DashboardStats } from '@/types'
 
 type ViewMode = 'totals' | 'per_haul'
@@ -40,18 +40,35 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [mode, setMode] = useState<ViewMode>('totals')
 
   useEffect(() => {
     fetch('/api/dashboard')
-      .then(r => r.json())
-      .then(d => { setStats(d); setLoading(false) })
+      .then(async r => {
+        const body = await r.json()
+        if (!r.ok) throw new Error(body?.error ?? `Failed to load dashboard (${r.status})`)
+        setStats(body)
+      })
+      .catch(err => setError(err instanceof Error ? err.message : 'Failed to load dashboard'))
+      .finally(() => setLoading(false))
   }, [])
 
   if (loading) {
     return (
       <div className="min-h-screen bg-white flex items-center justify-center">
         <div className="w-8 h-8 border-4 border-yellow-400 border-t-transparent rounded-full animate-spin" />
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-white flex items-center justify-center px-4">
+        <div className="max-w-sm w-full bg-red-50 border-2 border-red-500 rounded-xl px-4 py-4 flex items-start gap-3">
+          <AlertTriangle size={18} className="text-red-500 shrink-0 mt-0.5" />
+          <p className="text-red-700 text-sm font-medium">{error}</p>
+        </div>
       </div>
     )
   }
