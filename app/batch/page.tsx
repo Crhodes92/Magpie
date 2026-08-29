@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
 
 export default function BatchRedirect() {
-  redirect('/scout/batch')
+  redirect('/scout/camera')
 }

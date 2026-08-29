@@ -1,22 +1,14 @@
 'use client'
 
 import Link from 'next/link'
-import { Camera, Layers, Barcode, ChevronRight } from 'lucide-react'
+import { Camera, Barcode, ChevronRight } from 'lucide-react'
 
 const tools = [
   {
-    href: '/scout/classic',
+    href: '/scout/camera',
     icon: Camera,
-    label: 'Classic Scout',
-    description: 'Snap a photo and get AI identification with comp pricing in seconds.',
-    available: true,
-    accent: 'bg-yellow-400',
-  },
-  {
-    href: '/scout/batch',
-    icon: Layers,
-    label: 'Batch Scan',
-    description: 'Photograph a pile of items, then work through buy or pass decisions in a queue.',
+    label: 'Scout',
+    description: 'Snap photos as fast as you find items — each one auto-queues for AI identification. Decide what to buy at checkout.',
     available: true,
     accent: 'bg-yellow-400',
   },

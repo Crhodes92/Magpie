@@ -5,6 +5,27 @@ import Link from 'next/link'
 import { Download, TrendingUp, Clock, Target } from 'lucide-react'
 import type { DashboardStats } from '@/types'
 
+type ViewMode = 'totals' | 'per_haul'
+
+function CoinToggle({ mode, onFlip }: { mode: ViewMode; onFlip: () => void }) {
+  return (
+    <button
+      onClick={onFlip}
+      className="relative w-10 h-10 shrink-0"
+      style={{ perspective: '200px' }}
+      aria-label="Switch between totals and per-haul average"
+    >
+      <div
+        className="w-full h-full rounded-full border-2 border-black bg-yellow-400 flex items-center justify-center font-black text-black shadow-[2px_2px_0_0_#000] transition-transform duration-300 motion-reduce:transition-none"
+        style={{ transformStyle: 'preserve-3d', transform: mode === 'per_haul' ? 'rotateY(180deg)' : 'rotateY(0deg)' }}
+      >
+        <span style={{ backfaceVisibility: 'hidden', position: 'absolute' }}>$</span>
+        <span style={{ backfaceVisibility: 'hidden', position: 'absolute', transform: 'rotateY(180deg)' }}>≈</span>
+      </div>
+    </button>
+  )
+}
+
 function StatCard({ label, value, sub, accent }: { label: string; value: string; sub?: string; accent?: 'green' | 'red' | 'yellow' }) {
   const valueColor = accent === 'green' ? 'text-green-600' : accent === 'red' ? 'text-red-600' : accent === 'yellow' ? 'text-yellow-600' : 'text-black'
   return (
@@ -19,6 +40,7 @@ function StatCard({ label, value, sub, accent }: { label: string; value: string;
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mode, setMode] = useState<ViewMode>('totals')
 
   useEffect(() => {
     fetch('/api/dashboard')
@@ -52,19 +74,32 @@ export default function DashboardPage() {
           </a>
         </div>
 
-        {/* Key stats */}
+        {/* Toggleable 90-day summary */}
+        <div className="flex items-center gap-3 mb-3">
+          <CoinToggle mode={mode} onFlip={() => setMode(m => m === 'totals' ? 'per_haul' : 'totals')} />
+          <div>
+            <p className="text-sm font-bold text-black">{mode === 'totals' ? 'Last 90 days — totals' : 'Last 90 days — per haul average'}</p>
+            <p className="text-gray-400 text-xs">{stats.window_90.haul_count} {stats.window_90.haul_count === 1 ? 'haul' : 'hauls'} in this window · tap the coin to flip</p>
+          </div>
+        </div>
+        <div className="grid grid-cols-2 gap-3 mb-4">
+          <StatCard label="Items acquired" value={`${stats.window_90[mode].items}`} />
+          <StatCard label="Spend" value={`$${stats.window_90[mode].spend.toFixed(2)}`} />
+          <StatCard
+            label="Profit"
+            value={`${stats.window_90[mode].profit >= 0 ? '+' : ''}$${stats.window_90[mode].profit.toFixed(2)}`}
+            accent={stats.window_90[mode].profit >= 0 ? 'green' : 'red'}
+          />
+          <StatCard
+            label="Margin"
+            value={`${stats.window_90[mode].margin_pct}%`}
+            accent={stats.window_90[mode].margin_pct >= 0 ? 'green' : 'red'}
+          />
+        </div>
+
+        {/* All-time snapshot */}
         <div className="grid grid-cols-2 gap-3 mb-4">
           <StatCard label="Capital tied up" value={`$${stats.capital_tied_up.toFixed(2)}`} sub="acquired + listed" />
-          <StatCard
-            label="Profit this month"
-            value={`${stats.realized_profit_month >= 0 ? '+' : ''}$${stats.realized_profit_month.toFixed(2)}`}
-            accent={stats.realized_profit_month >= 0 ? 'green' : 'red'}
-          />
-          <StatCard
-            label="All-time profit"
-            value={`${stats.realized_profit_all_time >= 0 ? '+' : ''}$${stats.realized_profit_all_time.toFixed(2)}`}
-            accent={stats.realized_profit_all_time >= 0 ? 'green' : 'red'}
-          />
           <StatCard
             label="Scout hit rate"
             value={`${hitRatePct}%`}
@@ -94,7 +129,7 @@ export default function DashboardPage() {
             </div>
           </div>
           {stats.aging_60 > 0 && (
-            <Link href="/inventory?status=acquired" className="block mt-3 text-sm text-yellow-600 hover:text-black font-bold transition-colors">
+            <Link href="/hauls?status=acquired" className="block mt-3 text-sm text-yellow-600 hover:text-black font-bold transition-colors">
               View acquired inventory →
             </Link>
           )}

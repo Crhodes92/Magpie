@@ -1,4 +1,4 @@
-import type { Item, DashboardStats } from '@/types'
+import type { Item, DashboardStats, Haul, Profile } from '@/types'
 
 const NOW = new Date().toISOString()
 const TODAY = new Date().toISOString().slice(0, 10)
@@ -19,6 +19,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 420,
     est_value_high: 510,
     max_bid: 168,
+    haul_id: 'mock-haul-1',
+    lat: null,
+    lng: null,
     acquired_price: 175,
     acquired_at: D(12),
     acquired_source: 'Estate sale',
@@ -65,6 +68,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 85,
     est_value_high: 120,
     max_bid: 34,
+    haul_id: 'mock-haul-1',
+    lat: null,
+    lng: null,
     acquired_price: 40,
     acquired_at: D(5),
     acquired_source: 'Garage sale',
@@ -108,6 +114,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 110,
     est_value_high: 140,
     max_bid: 44,
+    haul_id: 'mock-haul-2',
+    lat: null,
+    lng: null,
     acquired_price: 35,
     acquired_at: D(21),
     acquired_source: 'Garage sale',
@@ -141,6 +150,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 240,
     est_value_high: 280,
     max_bid: 96,
+    haul_id: 'mock-haul-3',
+    lat: null,
+    lng: null,
     acquired_price: 180,
     acquired_at: D(45),
     acquired_source: 'Estate sale',
@@ -172,6 +184,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 900,
     est_value_high: 1400,
     max_bid: 360,
+    haul_id: 'mock-haul-4',
+    lat: null,
+    lng: null,
     acquired_price: 620,
     acquired_at: D(90),
     acquired_source: 'Card show',
@@ -215,6 +230,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 280,
     est_value_high: 380,
     max_bid: null,
+    haul_id: null,
+    lat: null,
+    lng: null,
     acquired_price: null,
     acquired_at: null,
     acquired_source: null,
@@ -246,6 +264,9 @@ export const MOCK_ITEMS: Item[] = [
     est_value_low: 1200,
     est_value_high: 1800,
     max_bid: 480,
+    haul_id: 'mock-haul-4',
+    lat: null,
+    lng: null,
     acquired_price: 550,
     acquired_at: D(67),
     acquired_source: 'Card show',
@@ -289,4 +310,22 @@ export const MOCK_DASHBOARD: DashboardStats = {
     { category: 'Video Games', margin: 22, count: 1 },
     { category: 'Power Tools', margin: 0, count: 0 },
   ],
+  window_90: {
+    totals: { items: 6, spend: 1600, profit: 286, margin_pct: 36 },
+    per_haul: { items: 1.5, spend: 400, profit: 71.5, margin_pct: 31 },
+    haul_count: 4,
+  },
+}
+
+export const MOCK_HAULS: Haul[] = [
+  { id: 'mock-haul-1', created_by: 'demo', name: 'Estate sale — Elm St', lat: null, lng: null, started_at: D(12), ended_at: D(12), notes: null, created_at: D(12) },
+  { id: 'mock-haul-2', created_by: 'demo', name: 'Garage sale — Maple Ave', lat: null, lng: null, started_at: D(21), ended_at: D(21), notes: null, created_at: D(21) },
+  { id: 'mock-haul-3', created_by: 'demo', name: 'Estate sale — Birchwood', lat: null, lng: null, started_at: D(45), ended_at: D(45), notes: null, created_at: D(45) },
+  { id: 'mock-haul-4', created_by: 'demo', name: 'Regional card show', lat: null, lng: null, started_at: D(90), ended_at: D(67), notes: null, created_at: D(90) },
+]
+
+export const MOCK_PROFILE: Profile = {
+  id: 'demo',
+  max_bid_pct: 40,
+  created_at: NOW,
 }

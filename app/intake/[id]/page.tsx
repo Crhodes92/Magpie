@@ -96,65 +96,6 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   useEffect(() => {
     if (isNew) return
 
-    const prefillJson = sessionStorage.getItem('scout-prefill')
-    if (prefillJson) {
-      try {
-        const { itemId, result, photoDataUrl } = JSON.parse(prefillJson) as { itemId: string; result: import('@/types').IdentifyResponse; photoDataUrl?: string }
-        if (itemId === id) {
-          sessionStorage.removeItem('scout-prefill')
-          applyItem({
-            id,
-            status: 'acquired',
-            lane: result.lane,
-            title: result.title,
-            category: result.category,
-            brand: result.brand ?? null,
-            model: result.model ?? null,
-            condition_note: result.condition_note ?? null,
-            ai_identification: result,
-            ai_confidence: result.confidence,
-            est_value_low: result.est_value_low ?? null,
-            est_value_high: result.est_value_high ?? null,
-            max_bid: null,
-            acquired_price: null,
-            acquired_at: null,
-            acquired_source: null,
-            storage_location: null,
-            listed_price: null,
-            listed_at: null,
-            ebay_item_id: null,
-            sold_price: null,
-            sold_at: null,
-            fees: null,
-            shipping_cost: null,
-            notes: null,
-            created_by: '',
-            created_at: '',
-            card_details: result.card_details ? {
-              item_id: id,
-              set_name: result.card_details.set_name ?? null,
-              set_code: result.card_details.set_code ?? null,
-              card_number: result.card_details.card_number ?? null,
-              card_name: result.card_details.card_name ?? null,
-              language: result.card_details.language ?? 'EN',
-              printing: result.card_details.printing ?? null,
-              is_graded: false,
-              grader: null,
-              grade: null,
-            } : null,
-          })
-          if (photoDataUrl) {
-            fetch(photoDataUrl)
-              .then(r => r.blob())
-              .then(blob => setPendingPhotos([{ url: URL.createObjectURL(blob), blob, isPrimary: true }]))
-              .catch(() => {})
-          }
-          setLoading(false)
-          return
-        }
-      } catch {}
-    }
-
     fetch(`/api/items/${id}`)
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
       .then((item: Item) => { applyItem(item); setLoading(false) })
@@ -234,7 +175,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     }
 
     setSaving(false)
-    router.push(itemId ? `/inventory/${itemId}` : '/inventory')
+    router.push(itemId ? `/hauls/${itemId}` : '/hauls')
   }
 
   if (loading) {
@@ -252,7 +193,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     <div className="min-h-screen bg-white pb-24 sm:pb-8">
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <Link href={isNew ? '/inventory' : `/inventory/${id}`} className="text-gray-400 hover:text-black transition-colors">
+          <Link href={isNew ? '/hauls' : `/hauls/${id}`} className="text-gray-400 hover:text-black transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-2xl font-black text-black">{isNew ? 'Add item' : 'Edit item'}</h1>

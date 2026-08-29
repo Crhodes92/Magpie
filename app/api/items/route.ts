@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MOCK_ITEMS } from '@/lib/mock-data'
+import { resolveHaulId } from '@/lib/hauls'
 
 export async function GET(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_DEMO === 'true') {
@@ -58,6 +59,15 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
 
   const { card_details: cardDetailsInput, ...itemFields } = body
+
+  // Only items landing from continuous Scout capture get auto-clustered into
+  // a haul — a manually-added Intake item (status starts 'acquired') stays
+  // ungrouped unless the user assigns it to a haul by hand later.
+  if (itemFields.status === 'scouted' && !itemFields.haul_id) {
+    itemFields.haul_id = await resolveHaulId(
+      supabase, user.id, itemFields.lat ?? null, itemFields.lng ?? null
+    )
+  }
 
   const { data: item, error: itemError } = await supabase
     .from('items')

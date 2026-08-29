@@ -5,6 +5,24 @@ create extension if not exists "pgcrypto";
 -- TABLES
 -- ============================================================
 
+create table if not exists hauls (
+  id           uuid primary key default gen_random_uuid(),
+  created_by   uuid not null references auth.users(id),
+  name         text not null,
+  lat          numeric,
+  lng          numeric,
+  started_at   timestamptz not null default now(),
+  ended_at     timestamptz not null default now(),
+  notes        text,
+  created_at   timestamptz not null default now()
+);
+
+create table if not exists profiles (
+  id           uuid primary key references auth.users(id),
+  max_bid_pct  numeric not null default 40,
+  created_at   timestamptz not null default now()
+);
+
 create table if not exists items (
   id                uuid primary key default gen_random_uuid(),
   status            text not null default 'scouted'
@@ -21,8 +39,11 @@ create table if not exists items (
   est_value_low     numeric,
   est_value_high    numeric,
   max_bid           numeric,
+  haul_id           uuid references hauls(id) on delete set null,
+  lat               numeric,
+  lng               numeric,
   acquired_price    numeric,
-  acquired_at       date,
+  acquired_at       timestamptz,
   acquired_source   text,
   storage_location  text,
   listed_price      numeric,
@@ -74,7 +95,9 @@ create table if not exists comps (
 -- VIEWS
 -- ============================================================
 
-create or replace view item_financials as
+create or replace view item_financials
+  with (security_invoker = true)
+as
 select
   i.id,
   i.title,
@@ -97,9 +120,9 @@ select
   end as roi_pct,
   case
     when i.sold_at is not null and i.acquired_at is not null then
-      (i.sold_at - i.acquired_at)
+      (i.sold_at - i.acquired_at::date)
     else
-      (current_date - i.acquired_at)
+      (current_date - i.acquired_at::date)
   end as days_held
 from items i
 where i.acquired_at is not null;
@@ -112,17 +135,32 @@ create index if not exists items_status_idx on items(status);
 create index if not exists items_lane_idx on items(lane);
 create index if not exists items_created_by_idx on items(created_by);
 create index if not exists items_created_at_idx on items(created_at desc);
+create index if not exists items_haul_id_idx on items(haul_id);
 create index if not exists item_photos_item_id_idx on item_photos(item_id);
 create index if not exists comps_item_id_idx on comps(item_id);
+create index if not exists hauls_created_by_idx on hauls(created_by);
+create index if not exists hauls_started_at_idx on hauls(started_at desc);
 
 -- ============================================================
 -- ROW LEVEL SECURITY
 -- ============================================================
 
+alter table hauls enable row level security;
+alter table profiles enable row level security;
 alter table items enable row level security;
 alter table card_details enable row level security;
 alter table item_photos enable row level security;
 alter table comps enable row level security;
+
+-- Hauls: only creator can read/write
+create policy "hauls_owner" on hauls
+  for all using (auth.uid() = created_by)
+  with check (auth.uid() = created_by);
+
+-- Profiles: a user can only read/write their own row
+create policy "profiles_owner" on profiles
+  for all using (auth.uid() = id)
+  with check (auth.uid() = id);
 
 -- Items: only creator can read/write
 create policy "items_owner" on items
@@ -155,6 +193,43 @@ create policy "comps_owner" on comps
   with check (
     exists (select 1 from items where items.id = comps.item_id and items.created_by = auth.uid())
   );
+
+-- ============================================================
+-- MIGRATION — run this block instead of the CREATE TABLE section
+-- above if `items` already exists in your database. Safe to run
+-- more than once; the DO blocks skip policies that already exist.
+-- ============================================================
+--
+-- create table if not exists hauls ( ... );          -- see TABLES above
+-- create table if not exists profiles ( ... );        -- see TABLES above
+--
+-- alter table items add column if not exists haul_id uuid references hauls(id) on delete set null;
+-- alter table items add column if not exists lat numeric;
+-- alter table items add column if not exists lng numeric;
+--
+-- -- acquired_at: date -> timestamptz. Existing rows land at midnight UTC —
+-- -- their time-of-day is unrecoverable, so don't feed pre-migration rows
+-- -- into the haul time/distance clustering, only newly-captured ones.
+-- alter table items alter column acquired_at type timestamptz using acquired_at::timestamptz;
+--
+-- create index if not exists items_haul_id_idx on items(haul_id);
+-- create index if not exists hauls_created_by_idx on hauls(created_by);
+-- create index if not exists hauls_started_at_idx on hauls(started_at desc);
+--
+-- alter table hauls enable row level security;
+-- alter table profiles enable row level security;
+--
+-- do $$ begin
+--   create policy "hauls_owner" on hauls
+--     for all using (auth.uid() = created_by)
+--     with check (auth.uid() = created_by);
+-- exception when duplicate_object then null; end $$;
+--
+-- do $$ begin
+--   create policy "profiles_owner" on profiles
+--     for all using (auth.uid() = id)
+--     with check (auth.uid() = id);
+-- exception when duplicate_object then null; end $$;
 
 -- ============================================================
 -- STORAGE BUCKET (run after schema)

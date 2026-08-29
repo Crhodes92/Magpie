@@ -55,7 +55,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   async function deleteItem() {
     if (!confirm('Delete this item?')) return
     await fetch(`/api/items/${id}`, { method: 'DELETE' })
-    router.push('/inventory')
+    router.push('/hauls')
   }
 
   if (loading) {
@@ -87,7 +87,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
       <div className="max-w-lg mx-auto px-4 py-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <Link href="/inventory" className="text-gray-400 hover:text-black transition-colors">
+          <Link href="/hauls" className="text-gray-400 hover:text-black transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <div className="flex gap-2">

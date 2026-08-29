@@ -15,6 +15,9 @@ export interface Item {
   est_value_low: number | null
   est_value_high: number | null
   max_bid: number | null
+  haul_id: string | null
+  lat: number | null
+  lng: number | null
   acquired_price: number | null
   acquired_at: string | null
   acquired_source: string | null
@@ -117,4 +120,30 @@ export interface DashboardStats {
   aging_90: number
   scout_hit_rate: number
   margin_by_category: { category: string; margin: number; count: number }[]
+  window_90: WindowStats
+}
+
+export interface WindowStats {
+  totals: { items: number; spend: number; profit: number; margin_pct: number }
+  per_haul: { items: number; spend: number; profit: number; margin_pct: number }
+  haul_count: number
+}
+
+export interface Haul {
+  id: string
+  created_by: string
+  name: string
+  lat: number | null
+  lng: number | null
+  started_at: string
+  ended_at: string
+  notes: string | null
+  created_at: string
+  items?: Item[]
+}
+
+export interface Profile {
+  id: string
+  max_bid_pct: number
+  created_at: string
 }
