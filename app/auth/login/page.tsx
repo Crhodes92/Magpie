@@ -13,13 +13,18 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError('')
-    const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
+    try {
+      const supabase = createClient()
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) {
+        setError(error.message)
+        setLoading(false)
+      } else {
+        window.location.href = '/scout'
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Sign in failed')
       setLoading(false)
-    } else {
-      window.location.href = '/scout'
     }
   }
 
