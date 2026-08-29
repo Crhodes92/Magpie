@@ -1,5 +1,7 @@
 -- Enable UUID extension
 create extension if not exists "pgcrypto";
+-- Enables similarity() for fuzzy set_name matching in find_set_siblings()
+create extension if not exists "pg_trgm";
 
 -- ============================================================
 -- TABLES
@@ -129,6 +131,47 @@ from items i
 where i.acquired_at is not null;
 
 -- ============================================================
+-- FUNCTIONS
+-- ============================================================
+
+-- Finds other items owned by the caller that likely belong to the same
+-- card set as p_item_id: an exact set_code match, or a fuzzy set_name
+-- match (trigram similarity > 0.35) when set_code isn't available or
+-- doesn't match. No SECURITY DEFINER — runs as the calling role, so the
+-- items/card_details RLS policies apply exactly as they would to a
+-- normal query (a caller can only ever match against their own rows).
+create or replace function find_set_siblings(p_item_id uuid)
+returns table (
+  id uuid,
+  title text,
+  status text,
+  storage_location text,
+  haul_id uuid
+)
+language sql
+stable
+as $$
+  with target as (
+    select cd.set_code, cd.set_name
+    from items i
+    join card_details cd on cd.item_id = i.id
+    where i.id = p_item_id
+  )
+  select i.id, i.title, i.status, i.storage_location, i.haul_id
+  from items i
+  join card_details cd on cd.item_id = i.id
+  cross join target
+  where i.id <> p_item_id
+    and i.status in ('acquired', 'listed', 'sold')
+    and (
+      (target.set_code is not null and cd.set_code is not null
+        and lower(cd.set_code) = lower(target.set_code))
+      or (target.set_name is not null and cd.set_name is not null
+        and similarity(cd.set_name, target.set_name) > 0.35)
+    )
+$$;
+
+-- ============================================================
 -- INDEXES
 -- ============================================================
 
@@ -140,6 +183,8 @@ create index if not exists items_haul_id_idx on items(haul_id);
 create index if not exists items_tags_idx on items using gin (tags);
 create index if not exists item_photos_item_id_idx on item_photos(item_id);
 create index if not exists comps_item_id_idx on comps(item_id);
+create index if not exists card_details_set_code_idx on card_details(lower(set_code));
+create index if not exists card_details_set_name_trgm_idx on card_details using gin (set_name gin_trgm_ops);
 create index if not exists hauls_created_by_idx on hauls(created_by);
 create index if not exists hauls_started_at_idx on hauls(started_at desc);
 

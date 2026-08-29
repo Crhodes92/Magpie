@@ -23,7 +23,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
 
   const { data: target, error: targetError } = await supabase
     .from('items')
-    .select('id, lane, card_details(set_name, card_name)')
+    .select('id, lane, card_details(set_name)')
     .eq('id', id)
     .eq('created_by', user.id)
     .single()
@@ -33,18 +33,15 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const cardDetails = Array.isArray(target.card_details) ? target.card_details[0] : target.card_details
   const setName = cardDetails?.set_name?.trim()
 
-  // v1: card lane only, matched on set_name — card_name/general-lane matching is fuzzier and a later iteration.
+  // v1: card lane only — general-lane matching (brand/model text) is fuzzier and a later iteration.
   if (target.lane !== 'card' || !setName) {
     return NextResponse.json({ suggestions: [] })
   }
 
-  const { data: siblings, error: siblingsError } = await supabase
-    .from('items')
-    .select('id, title, status, storage_location, haul_id, tags, card_details!inner(set_name)')
-    .eq('created_by', user.id)
-    .neq('id', id)
-    .in('status', ['acquired', 'listed', 'sold'])
-    .ilike('card_details.set_name', setName)
+  // Matches on exact set_code or fuzzy set_name similarity (see find_set_siblings in schema.sql) —
+  // AI-identified set names vary in phrasing across separate photos, so exact string equality
+  // alone misses real siblings too often.
+  const { data: siblings, error: siblingsError } = await supabase.rpc('find_set_siblings', { p_item_id: id })
 
   if (siblingsError) return NextResponse.json({ error: siblingsError.message }, { status: 500 })
   if (!siblings || siblings.length === 0) return NextResponse.json({ suggestions: [] })
@@ -59,7 +56,7 @@ export async function GET(_req: NextRequest, { params }: Params) {
   const vocabulary = [...new Set((allItems ?? []).flatMap(row => row.tags ?? []))]
   const existingMatch = vocabulary.find(t => t.toLowerCase() === setName.toLowerCase())
 
-  const matches: SiblingMatch[] = siblings.map(s => ({
+  const matches: SiblingMatch[] = (siblings as SiblingMatch[]).map(s => ({
     id: s.id,
     title: s.title,
     status: s.status,
