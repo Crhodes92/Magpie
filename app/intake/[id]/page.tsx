@@ -3,8 +3,14 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Camera, Star, Loader2 } from 'lucide-react'
+import { ArrowLeft, Camera, Star, Loader2, X, Sparkles } from 'lucide-react'
 import type { Item, ItemLane } from '@/types'
+
+interface TagSuggestion {
+  tag: string
+  existing: boolean
+  matches: { id: string; title: string | null; status: string; storage_location: string | null; haul_id: string | null }[]
+}
 
 function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
   return new Promise((resolve) => {
@@ -53,6 +59,10 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const [storageLocation, setStorageLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState('acquired')
+  const [tags, setTags] = useState<string[]>([])
+  const [tagInput, setTagInput] = useState('')
+  const [tagVocabulary, setTagVocabulary] = useState<string[]>([])
+  const [tagSuggestions, setTagSuggestions] = useState<TagSuggestion[]>([])
 
   const [setName, setSetName] = useState('')
   const [cardNumber, setCardNumber] = useState('')
@@ -79,6 +89,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     setStorageLocation(item.storage_location ?? '')
     setNotes(item.notes ?? '')
     setStatus(item.status ?? 'acquired')
+    setTags(item.tags ?? [])
     if (item.card_details) {
       setSetName(item.card_details.set_name ?? '')
       setCardNumber(item.card_details.card_number ?? '')
@@ -100,7 +111,30 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
       .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json() })
       .then((item: Item) => { applyItem(item); setLoading(false) })
       .catch(err => { console.error('[intake] fetch failed:', err); setLoading(false) })
+
+    fetch(`/api/items/${id}/tag-suggestions`)
+      .then(r => r.json())
+      .then(d => setTagSuggestions(d.suggestions ?? []))
+      .catch(() => {})
   }, [id, isNew])
+
+  useEffect(() => {
+    fetch('/api/tags')
+      .then(r => r.json())
+      .then(d => setTagVocabulary(d.tags ?? []))
+      .catch(() => {})
+  }, [])
+
+  function addTag(tag: string) {
+    const trimmed = tag.trim()
+    if (!trimmed) return
+    setTags(prev => prev.some(t => t.toLowerCase() === trimmed.toLowerCase()) ? prev : [...prev, trimmed])
+    setTagInput('')
+  }
+
+  function removeTag(tag: string) {
+    setTags(prev => prev.filter(t => t !== tag))
+  }
 
   async function addPhotos(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? [])
@@ -145,6 +179,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
       storage_location: storageLocation || null,
       notes: notes || null,
       status,
+      tags,
     }
 
     if (lane === 'card') {
@@ -367,6 +402,65 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
           <div>
             <label className={labelClass}>Notes</label>
             <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} className={inputClass} placeholder="Any extra notes…" />
+          </div>
+
+          {/* Tags */}
+          <div>
+            <label className={labelClass}>Tags</label>
+            <div className="flex flex-wrap gap-2 mb-2">
+              {tags.map(tag => (
+                <span key={tag} className="flex items-center gap-1 bg-yellow-100 border-2 border-black rounded-full pl-3 pr-2 py-1 text-xs font-bold text-black">
+                  {tag}
+                  <button type="button" onClick={() => removeTag(tag)} className="text-black/50 hover:text-black">
+                    <X size={12} />
+                  </button>
+                </span>
+              ))}
+            </div>
+            <input
+              type="text"
+              list="tag-vocabulary"
+              value={tagInput}
+              onChange={e => setTagInput(e.target.value)}
+              onKeyDown={e => {
+                if (e.key === 'Enter' || e.key === ',') {
+                  e.preventDefault()
+                  addTag(tagInput)
+                }
+              }}
+              onBlur={() => addTag(tagInput)}
+              placeholder="Add a tag, press Enter…"
+              className={inputClass}
+            />
+            <datalist id="tag-vocabulary">
+              {tagVocabulary.map(t => <option key={t} value={t} />)}
+            </datalist>
+
+            {tagSuggestions.filter(s => !tags.some(t => t.toLowerCase() === s.tag.toLowerCase())).map(s => (
+              <div key={s.tag} className="mt-3 border-2 border-dashed border-black rounded-xl p-3 bg-yellow-50">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={14} className="text-yellow-600 shrink-0" />
+                  <p className="text-xs text-black flex-1">
+                    {s.matches.length} other item{s.matches.length === 1 ? '' : 's'} from this set —{' '}
+                    {s.existing ? <>tag as <span className="font-bold">{s.tag}</span>?</> : <>create tag <span className="font-bold">{s.tag}</span>?</>}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => addTag(s.tag)}
+                    className="shrink-0 text-xs font-bold bg-yellow-400 border-2 border-black rounded-full px-3 py-1 hover:shadow-none shadow-[2px_2px_0_0_#000] transition-all"
+                  >
+                    Add
+                  </button>
+                </div>
+                <ul className="space-y-1">
+                  {s.matches.map(m => (
+                    <li key={m.id} className="text-xs text-gray-500 pl-6">
+                      {m.title ?? 'Untitled'} — {m.storage_location ?? (m.haul_id ? 'in another haul' : 'ungrouped')} · {m.status}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            ))}
           </div>
 
           <button

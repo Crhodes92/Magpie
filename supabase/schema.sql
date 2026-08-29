@@ -54,6 +54,7 @@ create table if not exists items (
   fees              numeric,
   shipping_cost     numeric,
   notes             text,
+  tags              text[] not null default '{}',
   created_by        uuid not null references auth.users(id),
   created_at        timestamptz not null default now()
 );
@@ -136,6 +137,7 @@ create index if not exists items_lane_idx on items(lane);
 create index if not exists items_created_by_idx on items(created_by);
 create index if not exists items_created_at_idx on items(created_at desc);
 create index if not exists items_haul_id_idx on items(haul_id);
+create index if not exists items_tags_idx on items using gin (tags);
 create index if not exists item_photos_item_id_idx on item_photos(item_id);
 create index if not exists comps_item_id_idx on comps(item_id);
 create index if not exists hauls_created_by_idx on hauls(created_by);

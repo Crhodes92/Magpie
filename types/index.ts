@@ -30,6 +30,7 @@ export interface Item {
   fees: number | null
   shipping_cost: number | null
   notes: string | null
+  tags?: string[]
   created_by: string
   created_at: string
   card_details?: CardDetails | null
