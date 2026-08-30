@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Search, Filter, Download, Plus, Package, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
+import ItemTags from '@/components/ItemTags'
 import type { Item, ItemStatus } from '@/types'
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
@@ -78,8 +79,9 @@ function ItemTile({ item }: { item: Item }) {
   return (
     <Link
       href={`/hauls/${item.id}`}
-      className={`group flex flex-col bg-white rounded-xl border-2 overflow-hidden transition-all hover:brightness-95 ${dealBorder(item)} ${dealShadow(item)}`}
+      className={`relative group flex flex-col bg-white rounded-xl border-2 overflow-hidden transition-all hover:brightness-95 ${dealBorder(item)} ${dealShadow(item)}`}
     >
+      <ItemTags tags={item.tags} />
       <div className="aspect-square bg-gray-100 overflow-hidden">
         {photo ? (
           <img src={photo.url} alt="" className="w-full h-full object-cover" />
