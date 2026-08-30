@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MOCK_ITEMS } from '@/lib/mock-data'
 import { resolveHaulId } from '@/lib/hauls'
+import { resolveAutoTags } from '@/lib/tags'
 
 export async function GET(req: NextRequest) {
   if (process.env.NEXT_PUBLIC_DEMO === 'true') {
@@ -82,6 +83,18 @@ export async function POST(req: NextRequest) {
       .from('card_details')
       .insert({ ...cardDetailsInput, item_id: item.id })
     if (cdError) console.error('[items POST] card_details error:', cdError.message)
+  }
+
+  const autoTags = await resolveAutoTags(supabase, user.id, item)
+  if (autoTags.length > 0) {
+    const { data: tagged, error: tagError } = await supabase
+      .from('items')
+      .update({ tags: autoTags })
+      .eq('id', item.id)
+      .select()
+      .single()
+    if (!tagError && tagged) return NextResponse.json(tagged, { status: 201 })
+    if (tagError) console.error('[items POST] auto-tag error:', tagError.message)
   }
 
   return NextResponse.json(item, { status: 201 })

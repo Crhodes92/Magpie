@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowLeft, Edit, ExternalLink, Trash2 } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import ConfidenceBadge from '@/components/ConfidenceBadge'
+import ItemTags from '@/components/ItemTags'
 import CompLogger from '@/components/CompLogger'
 import SoldForm from '@/components/SoldForm'
 import type { Item, ItemStatus, Comp } from '@/types'
@@ -106,7 +107,10 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
         {/* Photos */}
         {primaryPhoto && (
-          <img src={primaryPhoto.url} alt="" className="w-full rounded-xl object-cover max-h-72 mb-3 border-2 border-black" />
+          <div className="relative group mb-3">
+            <img src={primaryPhoto.url} alt="" className="w-full rounded-xl object-cover max-h-72 border-2 border-black" />
+            <ItemTags tags={item.tags} />
+          </div>
         )}
         {otherPhotos.length > 0 && (
           <div className="flex gap-2 mb-4 overflow-x-auto">

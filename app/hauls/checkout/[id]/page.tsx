@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, Package, CheckCircle2 } from 'lucide-react'
+import ItemTags from '@/components/ItemTags'
 import type { Item } from '@/types'
 import { MAX_BID_CONFIDENCE_THRESHOLD } from '@/lib/max-bid'
 
@@ -155,8 +156,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
             return (
               <div
                 key={row.item.id}
-                className={`flex items-center gap-3 bg-white border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000] transition-opacity ${!row.checked ? 'opacity-40' : ''}`}
+                className={`relative group flex items-center gap-3 bg-white border-2 border-black rounded-xl p-3 shadow-[3px_3px_0_0_#000] transition-opacity ${!row.checked ? 'opacity-40' : ''}`}
               >
+                <ItemTags tags={row.item.tags} />
                 <button
                   onClick={() => toggleChecked(row.item.id)}
                   className={`shrink-0 w-6 h-6 rounded-md border-2 border-black flex items-center justify-center ${row.checked ? 'bg-green-400' : 'bg-white'}`}
