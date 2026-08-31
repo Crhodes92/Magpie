@@ -20,9 +20,14 @@ create table if not exists hauls (
 );
 
 create table if not exists profiles (
-  id           uuid primary key references auth.users(id),
-  max_bid_pct  numeric not null default 40,
-  created_at   timestamptz not null default now()
+  id                    uuid primary key references auth.users(id),
+  max_bid_pct           numeric not null default 40,
+  ebay_ship_from_location text,
+  ebay_ship_from_country  text not null default 'US',
+  ebay_payment_policy     text,
+  ebay_shipping_policy    text,
+  ebay_return_policy      text,
+  created_at            timestamptz not null default now()
 );
 
 create table if not exists items (
@@ -51,6 +56,8 @@ create table if not exists items (
   listed_price      numeric,
   listed_at         date,
   ebay_item_id      text,
+  ebay_category_id  text,
+  ebay_condition_id smallint,
   sold_price        numeric,
   sold_at           date,
   fees              numeric,

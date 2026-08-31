@@ -25,6 +25,8 @@ export interface Item {
   listed_price: number | null
   listed_at: string | null
   ebay_item_id: string | null
+  ebay_category_id?: string | null
+  ebay_condition_id?: number | null
   sold_price: number | null
   sold_at: string | null
   fees: number | null
@@ -146,5 +148,10 @@ export interface Haul {
 export interface Profile {
   id: string
   max_bid_pct: number
+  ebay_ship_from_location: string | null
+  ebay_ship_from_country: string
+  ebay_payment_policy: string | null
+  ebay_shipping_policy: string | null
+  ebay_return_policy: string | null
   created_at: string
 }

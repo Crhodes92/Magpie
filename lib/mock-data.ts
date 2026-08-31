@@ -327,5 +327,10 @@ export const MOCK_HAULS: Haul[] = [
 export const MOCK_PROFILE: Profile = {
   id: 'demo',
   max_bid_pct: 40,
+  ebay_ship_from_location: 'Topeka,Kansas',
+  ebay_ship_from_country: 'US',
+  ebay_payment_policy: null,
+  ebay_shipping_policy: null,
+  ebay_return_policy: null,
   created_at: NOW,
 }

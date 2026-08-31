@@ -23,6 +23,17 @@ function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
   })
 }
 
+const EBAY_CONDITIONS = [
+  { id: '1000', label: 'New' },
+  { id: '1500', label: 'New other' },
+  { id: '2000', label: 'Manufacturer refurbished' },
+  { id: '3000', label: 'Used' },
+  { id: '4000', label: 'Very Good' },
+  { id: '5000', label: 'Good' },
+  { id: '6000', label: 'Acceptable' },
+  { id: '7000', label: 'For parts or not working' },
+]
+
 interface PhotoPreview {
   url: string
   blob: Blob
@@ -53,6 +64,8 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const [storageLocation, setStorageLocation] = useState('')
   const [notes, setNotes] = useState('')
   const [status, setStatus] = useState('acquired')
+  const [ebayCategoryId, setEbayCategoryId] = useState('')
+  const [ebayConditionId, setEbayConditionId] = useState('')
   const [tags, setTags] = useState<string[]>([])
   const [tagInput, setTagInput] = useState('')
   const [tagVocabulary, setTagVocabulary] = useState<string[]>([])
@@ -83,6 +96,8 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     setNotes(item.notes ?? '')
     setStatus(item.status ?? 'acquired')
     setTags(item.tags ?? [])
+    setEbayCategoryId(item.ebay_category_id ?? '')
+    setEbayConditionId(item.ebay_condition_id?.toString() ?? '')
     if (item.card_details) {
       setSetName(item.card_details.set_name ?? '')
       setCardNumber(item.card_details.card_number ?? '')
@@ -168,6 +183,8 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
       notes: notes || null,
       status,
       tags,
+      ebay_category_id: ebayCategoryId || null,
+      ebay_condition_id: ebayConditionId ? parseInt(ebayConditionId, 10) : null,
     }
 
     if (lane === 'card') {
@@ -390,6 +407,25 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
           <div>
             <label className={labelClass}>Notes</label>
             <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} className={inputClass} placeholder="Any extra notes…" />
+          </div>
+
+          {/* eBay listing */}
+          <div className="space-y-3">
+            <p className="text-xs font-black text-black uppercase tracking-wide">eBay listing</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>eBay category ID</label>
+                <input type="text" value={ebayCategoryId} onChange={e => setEbayCategoryId(e.target.value)} placeholder="e.g. 183454" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Condition</label>
+                <select value={ebayConditionId} onChange={e => setEbayConditionId(e.target.value)} className={inputClass}>
+                  <option value="">Select…</option>
+                  {EBAY_CONDITIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                </select>
+              </div>
+            </div>
+            <p className="text-xs text-gray-400">Find the category ID via eBay&apos;s category search — needed for the eBay CSV export.</p>
           </div>
 
           {/* Tags */}

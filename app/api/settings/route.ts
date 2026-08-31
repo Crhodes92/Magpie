@@ -36,14 +36,23 @@ export async function PATCH(req: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const maxBidPct = Number(body.max_bid_pct)
-  if (!Number.isFinite(maxBidPct) || maxBidPct < MAX_BID_PCT_MIN || maxBidPct > MAX_BID_PCT_MAX) {
-    return NextResponse.json({ error: `max_bid_pct must be between ${MAX_BID_PCT_MIN} and ${MAX_BID_PCT_MAX}` }, { status: 400 })
+  const patch: Record<string, unknown> = { id: user.id }
+
+  if (body.max_bid_pct !== undefined) {
+    const maxBidPct = Number(body.max_bid_pct)
+    if (!Number.isFinite(maxBidPct) || maxBidPct < MAX_BID_PCT_MIN || maxBidPct > MAX_BID_PCT_MAX) {
+      return NextResponse.json({ error: `max_bid_pct must be between ${MAX_BID_PCT_MIN} and ${MAX_BID_PCT_MAX}` }, { status: 400 })
+    }
+    patch.max_bid_pct = maxBidPct
+  }
+
+  for (const field of ['ebay_ship_from_location', 'ebay_ship_from_country', 'ebay_payment_policy', 'ebay_shipping_policy', 'ebay_return_policy'] as const) {
+    if (body[field] !== undefined) patch[field] = body[field] || null
   }
 
   const { data, error } = await supabase
     .from('profiles')
-    .upsert({ id: user.id, max_bid_pct: maxBidPct })
+    .upsert(patch)
     .select()
     .single()
 

@@ -247,6 +247,14 @@ function HaulsPageInner() {
               <Download size={14} />
               Export
             </a>
+            <a
+              href="/api/export/ebay"
+              className="flex items-center gap-1.5 text-gray-500 hover:text-black text-sm px-3 py-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
+              title="CSV formatted for eBay's Seller Hub bulk listing upload"
+            >
+              <Download size={14} />
+              eBay CSV
+            </a>
             <Link
               href="/intake/new"
               className="flex items-center gap-1.5 text-black text-sm px-3 py-2 bg-yellow-400 border-2 border-black rounded-lg font-bold shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"
