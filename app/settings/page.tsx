@@ -1,18 +1,18 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { Sliders, Check, AlertTriangle, Tag } from 'lucide-react'
+import { Sliders, AlertTriangle, Tag } from 'lucide-react'
 import { DEFAULT_MAX_BID_PCT, MAX_BID_PCT_MIN, MAX_BID_PCT_MAX } from '@/lib/max-bid'
+import { useToast } from '@/components/Toast'
 
 const inputClass = "w-full bg-white border-2 border-black rounded-lg px-3 py-2.5 text-black text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-yellow-400"
 const labelClass = "block text-xs text-gray-500 mb-1 font-medium"
 
 export default function SettingsPage() {
+  const showToast = useToast()
   const [pct, setPct] = useState<number>(DEFAULT_MAX_BID_PCT)
   const [loading, setLoading] = useState(true)
   const [loadError, setLoadError] = useState<string | null>(null)
-  const [saved, setSaved] = useState(false)
-  const [saveError, setSaveError] = useState<string | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const [shipFromLocation, setShipFromLocation] = useState('')
@@ -21,8 +21,6 @@ export default function SettingsPage() {
   const [shippingPolicy, setShippingPolicy] = useState('')
   const [returnPolicy, setReturnPolicy] = useState('')
   const [ebaySaving, setEbaySaving] = useState(false)
-  const [ebaySaved, setEbaySaved] = useState(false)
-  const [ebayError, setEbayError] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/settings')
@@ -43,7 +41,6 @@ export default function SettingsPage() {
   async function saveEbaySettings(e: React.FormEvent) {
     e.preventDefault()
     setEbaySaving(true)
-    setEbayError(null)
     try {
       const res = await fetch('/api/settings', {
         method: 'PATCH',
@@ -58,10 +55,9 @@ export default function SettingsPage() {
       })
       const body = await res.json()
       if (!res.ok) throw new Error(body?.error ?? `Failed to save (${res.status})`)
-      setEbaySaved(true)
-      setTimeout(() => setEbaySaved(false), 1500)
+      showToast('eBay defaults saved', 'success')
     } catch (err) {
-      setEbayError(err instanceof Error ? err.message : 'Failed to save')
+      showToast(err instanceof Error ? err.message : 'Failed to save', 'error')
     }
     setEbaySaving(false)
   }
@@ -77,14 +73,12 @@ export default function SettingsPage() {
         })
         const body = await res.json()
         if (!res.ok) throw new Error(body?.error ?? `Failed to save (${res.status})`)
-        setSaveError(null)
-        setSaved(true)
-        setTimeout(() => setSaved(false), 1500)
+        showToast('Max bid percentage saved', 'success')
       } catch (err) {
-        setSaveError(err instanceof Error ? err.message : 'Failed to save')
+        showToast(err instanceof Error ? err.message : 'Failed to save', 'error')
       }
     }, 400)
-  }, [])
+  }, [showToast])
 
   function handleChange(value: number) {
     setPct(value)
@@ -130,16 +124,6 @@ export default function SettingsPage() {
 
           <div className="flex items-baseline justify-between mb-2">
             <span className="text-3xl font-black text-black">{pct}%</span>
-            {saved && (
-              <span className="flex items-center gap-1 text-xs font-bold text-green-600">
-                <Check size={13} /> Saved
-              </span>
-            )}
-            {saveError && (
-              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
-                <AlertTriangle size={13} /> {saveError}
-              </span>
-            )}
           </div>
 
           <div className="relative h-3 rounded-full mb-2" style={{ background: 'linear-gradient(90deg, #22c55e 0%, #facc15 50%, #ef4444 100%)' }}>
@@ -206,16 +190,6 @@ export default function SettingsPage() {
             >
               {ebaySaving ? 'Saving…' : 'Save'}
             </button>
-            {ebaySaved && (
-              <span className="flex items-center gap-1 text-xs font-bold text-green-600">
-                <Check size={13} /> Saved
-              </span>
-            )}
-            {ebayError && (
-              <span className="flex items-center gap-1 text-xs font-bold text-red-600">
-                <AlertTriangle size={13} /> {ebayError}
-              </span>
-            )}
           </div>
         </form>
       </div>

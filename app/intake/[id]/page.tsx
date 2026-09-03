@@ -4,6 +4,7 @@ import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Camera, Star, Loader2, X } from 'lucide-react'
+import { useToast } from '@/components/Toast'
 import type { Item, ItemLane } from '@/types'
 
 function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
@@ -44,6 +45,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
   const { id } = use(params)
   const isNew = id === 'new'
   const router = useRouter()
+  const showToast = useToast()
 
   const [loading, setLoading] = useState(!isNew)
   const [saving, setSaving] = useState(false)
@@ -201,11 +203,23 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     }
 
     let itemId = isNew ? null : id
-    if (isNew) {
-      const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
-      if (res.ok) { const item = await res.json(); itemId = item.id }
-    } else {
-      await fetch(`/api/items/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+    try {
+      if (isNew) {
+        const res = await fetch('/api/items', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        const resBody = await res.json()
+        if (!res.ok) throw new Error(resBody?.error ?? `Failed to save (${res.status})`)
+        itemId = resBody.id
+      } else {
+        const res = await fetch(`/api/items/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+        if (!res.ok) {
+          const resBody = await res.json()
+          throw new Error(resBody?.error ?? `Failed to save (${res.status})`)
+        }
+      }
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to save item', 'error')
+      setSaving(false)
+      return
     }
 
     if (itemId && pendingPhotos.length > 0) {
@@ -215,6 +229,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     }
 
     setSaving(false)
+    showToast(isNew ? 'Item added' : 'Item updated', 'success')
     router.push(itemId ? `/hauls/${itemId}` : '/hauls')
   }
 

@@ -52,9 +52,24 @@ export default function ScoutCameraPage() {
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [maxBidPct, setMaxBidPct] = useState<number>(DEFAULT_MAX_BID_PCT)
   const [activeId, setActiveId] = useState<string | null>(null)
+  const [modalVisible, setModalVisible] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
   const locationRef = useRef<Promise<{ lat: number | null; lng: number | null }> | null>(null)
   const touchStartX = useRef<number | null>(null)
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }, [])
+
+  const openModal = useCallback((id: string) => {
+    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null }
+    setActiveId(id)
+    requestAnimationFrame(() => requestAnimationFrame(() => setModalVisible(true)))
+  }, [])
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false)
+    closeTimerRef.current = setTimeout(() => setActiveId(null), 200)
+  }, [])
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => setMaxBidPct(d.max_bid_pct ?? DEFAULT_MAX_BID_PCT)).catch(() => {})
@@ -140,13 +155,13 @@ export default function ScoutCameraPage() {
   useEffect(() => {
     if (!activeId) return
     function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') setActiveId(null)
+      if (e.key === 'Escape') closeModal()
       else if (e.key === 'ArrowLeft') move(-1)
       else if (e.key === 'ArrowRight') move(1)
     }
     window.addEventListener('keydown', onKeyDown)
     return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeId, move])
+  }, [activeId, move, closeModal])
 
   function handleTouchStart(e: React.TouchEvent) {
     touchStartX.current = e.touches[0].clientX
@@ -187,8 +202,8 @@ export default function ScoutCameraPage() {
                 key={item.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => setActiveId(item.id)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setActiveId(item.id) } }}
+                onClick={() => openModal(item.id)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(item.id) } }}
                 className="relative bg-white border-2 border-black rounded-xl overflow-hidden shadow-[3px_3px_0_0_#000] cursor-pointer hover:brightness-95 transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
               >
                 <img src={item.previewUrl} alt="" className="w-full aspect-square object-cover" />
@@ -230,15 +245,15 @@ export default function ScoutCameraPage() {
 
       {activeItem && (
         <div
-          className="fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px] flex items-center justify-center p-4"
-          onClick={() => setActiveId(null)}
+          className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px] flex items-center justify-center p-4 transition-opacity duration-200 ease-out motion-reduce:transition-none ${modalVisible ? 'opacity-100' : 'opacity-0'}`}
+          onClick={closeModal}
         >
           <div
-            className="relative w-full max-w-md bg-white rounded-2xl border-2 border-black shadow-[6px_6px_0_0_#000] overflow-hidden max-h-[88vh] flex flex-col"
+            className={`relative w-full max-w-md bg-white rounded-2xl border-2 border-black shadow-[6px_6px_0_0_#000] overflow-hidden max-h-[88vh] flex flex-col transition-all duration-200 ease-out motion-reduce:transition-none ${modalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
             onClick={e => e.stopPropagation()}
           >
             <button
-              onClick={() => setActiveId(null)}
+              onClick={closeModal}
               aria-label="Close"
               className="absolute top-2.5 right-2.5 z-10 bg-white/90 border-2 border-black rounded-full p-1.5 hover:bg-white transition-colors"
             >
