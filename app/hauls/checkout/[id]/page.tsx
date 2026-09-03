@@ -5,6 +5,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, AlertTriangle, Package, CheckCircle2 } from 'lucide-react'
 import ItemTags from '@/components/ItemTags'
+import ConfidenceBadge from '@/components/ConfidenceBadge'
+import DetailLightbox from '@/components/DetailLightbox'
 import type { Item } from '@/types'
 import { MAX_BID_CONFIDENCE_THRESHOLD } from '@/lib/max-bid'
 
@@ -24,6 +26,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   const [loadError, setLoadError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [submitError, setSubmitError] = useState<string | null>(null)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
 
   useEffect(() => {
     fetch(`/api/hauls/${haulId}?status=scouted`)
@@ -151,7 +154,7 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
 
         {/* Items */}
         <div className="space-y-3 mb-6">
-          {rows.map(row => {
+          {rows.map((row, index) => {
             const photo = (row.item as Item & { item_photos?: Item['photos'] }).item_photos?.[0] ?? row.item.photos?.[0]
             return (
               <div
@@ -166,20 +169,28 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
                 >
                   {row.checked && <CheckCircle2 size={16} className="text-black" />}
                 </button>
-                <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-black shrink-0 bg-gray-100">
-                  {photo ? <img src={photo.url} alt="" className="w-full h-full object-cover" /> : (
-                    <div className="w-full h-full flex items-center justify-center"><Package size={16} className="text-gray-300" /></div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-black text-sm font-bold truncate">{row.item.title ?? 'Untitled'}</p>
-                  {row.lowConfidence ? (
-                    <p className="flex items-center gap-1 text-yellow-600 text-xs font-medium">
-                      <AlertTriangle size={11} /> Verify manually
-                    </p>
-                  ) : row.item.est_value_low != null && (
-                    <p className="text-gray-400 text-xs">Est ${row.item.est_value_low}–{row.item.est_value_high ?? '?'}</p>
-                  )}
+                <div
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setLightboxIndex(index)}
+                  onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxIndex(index) } }}
+                  className="flex items-center gap-3 flex-1 min-w-0 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400 rounded-lg"
+                >
+                  <div className="w-12 h-12 rounded-lg overflow-hidden border-2 border-black shrink-0 bg-gray-100">
+                    {photo ? <img src={photo.url} alt="" className="w-full h-full object-cover" /> : (
+                      <div className="w-full h-full flex items-center justify-center"><Package size={16} className="text-gray-300" /></div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-black text-sm font-bold truncate">{row.item.title ?? 'Untitled'}</p>
+                    {row.lowConfidence ? (
+                      <p className="flex items-center gap-1 text-yellow-600 text-xs font-medium">
+                        <AlertTriangle size={11} /> Verify manually
+                      </p>
+                    ) : row.item.est_value_low != null && (
+                      <p className="text-gray-400 text-xs">Est ${row.item.est_value_low}–{row.item.est_value_high ?? '?'}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   <span className="text-black font-black">$</span>
@@ -215,6 +226,76 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
           {submitting ? 'Settling…' : `Confirm — $${Math.round(total)} for ${checkedCount} ${checkedCount === 1 ? 'item' : 'items'}`}
         </button>
       </div>
+
+      <DetailLightbox
+        items={rows}
+        openIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        renderPhoto={row => {
+          const photo = (row.item as Item & { item_photos?: Item['photos'] }).item_photos?.[0] ?? row.item.photos?.[0]
+          return photo ? (
+            <img src={photo.url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center"><Package size={32} className="text-gray-300" /></div>
+          )
+        }}
+        renderDetails={row => {
+          const item = row.item
+          return (
+            <>
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-black font-black text-lg leading-snug">{item.title ?? 'Untitled'}</p>
+                {row.checked && <CheckCircle2 size={20} className="text-green-500 shrink-0 mt-0.5" />}
+              </div>
+              <div className="flex items-center gap-2 flex-wrap">
+                {item.ai_confidence != null && <ConfidenceBadge confidence={item.ai_confidence} />}
+                {item.category && <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded px-2 py-0.5">{item.category}</span>}
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                {item.est_value_low != null && (
+                  <div><p className="text-xs text-gray-400 font-medium">Est. value</p><p className="text-black font-bold text-sm">${item.est_value_low}–{item.est_value_high ?? '?'}</p></div>
+                )}
+                <div><p className="text-xs text-gray-400 font-medium">Offer price</p><p className="text-black font-bold text-sm">${row.price.toFixed(2)}</p></div>
+              </div>
+
+              {(item.brand || item.model || item.condition_note) && (
+                <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">
+                  {item.brand && <div><p className="text-xs text-gray-400 font-medium">Brand</p><p className="text-black text-sm">{item.brand}</p></div>}
+                  {item.model && <div><p className="text-xs text-gray-400 font-medium">Model</p><p className="text-black text-sm">{item.model}</p></div>}
+                  {item.condition_note && <div className="col-span-2"><p className="text-xs text-gray-400 font-medium">Condition</p><p className="text-black text-sm">{item.condition_note}</p></div>}
+                </div>
+              )}
+
+              {item.lane === 'card' && item.card_details && (
+                <div className="grid grid-cols-2 gap-3 pt-2 border-t-2 border-black">
+                  {item.card_details.set_name && <div><p className="text-xs text-gray-400 font-medium">Set</p><p className="text-black text-sm">{item.card_details.set_name}</p></div>}
+                  {item.card_details.card_number && <div><p className="text-xs text-gray-400 font-medium">Card #</p><p className="text-black text-sm">{item.card_details.card_number}</p></div>}
+                  {item.card_details.printing && <div><p className="text-xs text-gray-400 font-medium">Printing</p><p className="text-black text-sm">{item.card_details.printing}</p></div>}
+                  {item.card_details.language && <div><p className="text-xs text-gray-400 font-medium">Language</p><p className="text-black text-sm">{item.card_details.language}</p></div>}
+                  {item.card_details.is_graded && (
+                    <div><p className="text-xs text-gray-400 font-medium">Grade</p><p className="text-black text-sm">{item.card_details.grader} {item.card_details.grade}</p></div>
+                  )}
+                </div>
+              )}
+
+              {item.tags && item.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 pt-2 border-t border-gray-100">
+                  {item.tags.map(tag => (
+                    <span key={tag} className="bg-yellow-100 border border-black rounded-full px-2 py-0.5 text-xs font-bold text-black">{tag}</span>
+                  ))}
+                </div>
+              )}
+
+              {item.notes && <p className="text-gray-500 text-xs pt-2 border-t border-gray-100">{item.notes}</p>}
+
+              {item.ai_identification?.reasoning && (
+                <p className="text-gray-400 text-xs pt-2 border-t border-gray-100 leading-relaxed">{item.ai_identification.reasoning}</p>
+              )}
+            </>
+          )
+        }}
+      />
     </div>
   )
 }

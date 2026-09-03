@@ -2,8 +2,9 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import Link from 'next/link'
-import { Camera, CheckCircle2, Loader2, AlertTriangle, ArrowLeft, ArrowRight, X, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Camera, CheckCircle2, Loader2, AlertTriangle, ArrowLeft, ArrowRight } from 'lucide-react'
 import ConfidenceBadge from '@/components/ConfidenceBadge'
+import DetailLightbox from '@/components/DetailLightbox'
 import type { IdentifyResponse } from '@/types'
 import { computeMaxBid, DEFAULT_MAX_BID_PCT } from '@/lib/max-bid'
 
@@ -51,25 +52,9 @@ function getLocation(): Promise<{ lat: number | null; lng: number | null }> {
 export default function ScoutCameraPage() {
   const [queue, setQueue] = useState<QueueItem[]>([])
   const [maxBidPct, setMaxBidPct] = useState<number>(DEFAULT_MAX_BID_PCT)
-  const [activeId, setActiveId] = useState<string | null>(null)
-  const [modalVisible, setModalVisible] = useState(false)
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const locationRef = useRef<Promise<{ lat: number | null; lng: number | null }> | null>(null)
-  const touchStartX = useRef<number | null>(null)
-  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current) }, [])
-
-  const openModal = useCallback((id: string) => {
-    if (closeTimerRef.current) { clearTimeout(closeTimerRef.current); closeTimerRef.current = null }
-    setActiveId(id)
-    requestAnimationFrame(() => requestAnimationFrame(() => setModalVisible(true)))
-  }, [])
-
-  const closeModal = useCallback(() => {
-    setModalVisible(false)
-    closeTimerRef.current = setTimeout(() => setActiveId(null), 200)
-  }, [])
 
   useEffect(() => {
     fetch('/api/settings').then(r => r.json()).then(d => setMaxBidPct(d.max_bid_pct ?? DEFAULT_MAX_BID_PCT)).catch(() => {})
@@ -140,38 +125,6 @@ export default function ScoutCameraPage() {
   const saved = queue.filter(i => i.phase === 'saved')
   const displayList = [...queue].reverse()
   const currentHaulId = displayList.find(i => i.haulId)?.haulId ?? null
-  const activeIndex = activeId ? displayList.findIndex(i => i.id === activeId) : -1
-  const activeItem = activeIndex >= 0 ? displayList[activeIndex] : null
-
-  const move = useCallback((delta: number) => {
-    setActiveId(current => {
-      const list = [...queue].reverse()
-      const idx = list.findIndex(i => i.id === current)
-      const next = idx + delta
-      return next >= 0 && next < list.length ? list[next].id : current
-    })
-  }, [queue])
-
-  useEffect(() => {
-    if (!activeId) return
-    function onKeyDown(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeModal()
-      else if (e.key === 'ArrowLeft') move(-1)
-      else if (e.key === 'ArrowRight') move(1)
-    }
-    window.addEventListener('keydown', onKeyDown)
-    return () => window.removeEventListener('keydown', onKeyDown)
-  }, [activeId, move, closeModal])
-
-  function handleTouchStart(e: React.TouchEvent) {
-    touchStartX.current = e.touches[0].clientX
-  }
-  function handleTouchEnd(e: React.TouchEvent) {
-    if (touchStartX.current == null) return
-    const delta = e.changedTouches[0].clientX - touchStartX.current
-    touchStartX.current = null
-    if (Math.abs(delta) > 50) move(delta < 0 ? 1 : -1)
-  }
 
   return (
     <div className="min-h-screen bg-white pb-20 sm:pb-0">
@@ -197,13 +150,13 @@ export default function ScoutCameraPage() {
 
         {queue.length > 0 && (
           <div className="grid grid-cols-3 gap-3 mb-5">
-            {displayList.map(item => (
+            {displayList.map((item, index) => (
               <div
                 key={item.id}
                 role="button"
                 tabIndex={0}
-                onClick={() => openModal(item.id)}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(item.id) } }}
+                onClick={() => setLightboxIndex(index)}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setLightboxIndex(index) } }}
                 className="relative bg-white border-2 border-black rounded-xl overflow-hidden shadow-[3px_3px_0_0_#000] cursor-pointer hover:brightness-95 transition-[filter] focus:outline-none focus-visible:ring-2 focus-visible:ring-yellow-400"
               >
                 <img src={item.previewUrl} alt="" className="w-full aspect-square object-cover" />
@@ -243,126 +196,87 @@ export default function ScoutCameraPage() {
         )}
       </div>
 
-      {activeItem && (
-        <div
-          className={`fixed inset-0 z-50 bg-black/70 backdrop-blur-[1px] flex items-center justify-center p-4 transition-opacity duration-200 ease-out motion-reduce:transition-none ${modalVisible ? 'opacity-100' : 'opacity-0'}`}
-          onClick={closeModal}
-        >
-          <div
-            className={`relative w-full max-w-md bg-white rounded-2xl border-2 border-black shadow-[6px_6px_0_0_#000] overflow-hidden max-h-[88vh] flex flex-col transition-all duration-200 ease-out motion-reduce:transition-none ${modalVisible ? 'opacity-100 scale-100' : 'opacity-0 scale-95'}`}
-            onClick={e => e.stopPropagation()}
-          >
-            <button
-              onClick={closeModal}
-              aria-label="Close"
-              className="absolute top-2.5 right-2.5 z-10 bg-white/90 border-2 border-black rounded-full p-1.5 hover:bg-white transition-colors"
-            >
-              <X size={16} />
-            </button>
-
-            {activeIndex > 0 && (
-              <button
-                onClick={() => move(-1)}
-                aria-label="Previous item"
-                className="absolute left-2 top-[35%] -translate-y-1/2 z-10 bg-white/90 border-2 border-black rounded-full p-1.5 hover:bg-white transition-colors"
-              >
-                <ChevronLeft size={18} />
-              </button>
+      <DetailLightbox
+        items={displayList}
+        openIndex={lightboxIndex}
+        onClose={() => setLightboxIndex(null)}
+        renderPhoto={item => <img src={item.previewUrl} alt="" className="w-full h-full object-cover" />}
+        renderDetails={item => (
+          <>
+            {item.phase === 'identifying' && (
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Loader2 size={16} className="animate-spin text-yellow-500" /> Identifying…</div>
             )}
-            {activeIndex < displayList.length - 1 && (
-              <button
-                onClick={() => move(1)}
-                aria-label="Next item"
-                className="absolute right-2 top-[35%] -translate-y-1/2 z-10 bg-white/90 border-2 border-black rounded-full p-1.5 hover:bg-white transition-colors"
-              >
-                <ChevronRight size={18} />
-              </button>
+            {item.phase === 'saving' && (
+              <div className="flex items-center gap-2 text-gray-500 text-sm"><Loader2 size={16} className="animate-spin text-yellow-500" /> Saving…</div>
             )}
+            {item.phase === 'error' && (
+              <div className="flex items-start gap-2 text-red-600 text-sm"><AlertTriangle size={16} className="shrink-0 mt-0.5" /> {item.errorMsg}</div>
+            )}
+            {item.phase === 'saved' && item.result && (
+              <>
+                <div className="flex items-start justify-between gap-2">
+                  <p className="text-black font-black text-lg leading-snug">{item.result.title}</p>
+                  <CheckCircle2 size={20} className="text-green-500 shrink-0 mt-0.5" />
+                </div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <ConfidenceBadge confidence={item.result.confidence} />
+                  <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded px-2 py-0.5">{item.result.category}</span>
+                </div>
 
-            <div
-              className="aspect-square bg-gray-100 shrink-0"
-              onTouchStart={handleTouchStart}
-              onTouchEnd={handleTouchEnd}
-            >
-              <img src={activeItem.previewUrl} alt="" className="w-full h-full object-cover" />
-            </div>
-
-            <div className="p-4 overflow-y-auto flex-1 space-y-3">
-              {activeItem.phase === 'identifying' && (
-                <div className="flex items-center gap-2 text-gray-500 text-sm"><Loader2 size={16} className="animate-spin text-yellow-500" /> Identifying…</div>
-              )}
-              {activeItem.phase === 'saving' && (
-                <div className="flex items-center gap-2 text-gray-500 text-sm"><Loader2 size={16} className="animate-spin text-yellow-500" /> Saving…</div>
-              )}
-              {activeItem.phase === 'error' && (
-                <div className="flex items-start gap-2 text-red-600 text-sm"><AlertTriangle size={16} className="shrink-0 mt-0.5" /> {activeItem.errorMsg}</div>
-              )}
-              {activeItem.phase === 'saved' && activeItem.result && (
-                <>
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="text-black font-black text-lg leading-snug">{activeItem.result.title}</p>
-                    <CheckCircle2 size={20} className="text-green-500 shrink-0 mt-0.5" />
-                  </div>
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <ConfidenceBadge confidence={activeItem.result.confidence} />
-                    <span className="text-xs font-bold text-gray-500 bg-gray-100 border border-gray-300 rounded px-2 py-0.5">{activeItem.result.category}</span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    {activeItem.result.est_value_low != null && (
-                      <div>
-                        <p className="text-xs text-gray-400 font-medium">Est. value</p>
-                        <p className="text-black font-bold text-sm">${activeItem.result.est_value_low}–{activeItem.result.est_value_high ?? '?'}</p>
-                      </div>
-                    )}
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  {item.result.est_value_low != null && (
                     <div>
-                      <p className="text-xs text-gray-400 font-medium">Max bid</p>
-                      <p className="text-black font-bold text-sm">
-                        ${computeMaxBid(activeItem.result.est_value_low, activeItem.result.confidence, maxBidPct) ?? '—'}
-                      </p>
+                      <p className="text-xs text-gray-400 font-medium">Est. value</p>
+                      <p className="text-black font-bold text-sm">${item.result.est_value_low}–{item.result.est_value_high ?? '?'}</p>
                     </div>
+                  )}
+                  <div>
+                    <p className="text-xs text-gray-400 font-medium">Max bid</p>
+                    <p className="text-black font-bold text-sm">
+                      ${computeMaxBid(item.result.est_value_low, item.result.confidence, maxBidPct) ?? '—'}
+                    </p>
                   </div>
+                </div>
 
-                  {(activeItem.result.brand || activeItem.result.model || activeItem.result.condition_note) && (
-                    <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">
-                      {activeItem.result.brand && (
-                        <div><p className="text-xs text-gray-400 font-medium">Brand</p><p className="text-black text-sm">{activeItem.result.brand}</p></div>
-                      )}
-                      {activeItem.result.model && (
-                        <div><p className="text-xs text-gray-400 font-medium">Model</p><p className="text-black text-sm">{activeItem.result.model}</p></div>
-                      )}
-                      {activeItem.result.condition_note && (
-                        <div className="col-span-2"><p className="text-xs text-gray-400 font-medium">Condition</p><p className="text-black text-sm">{activeItem.result.condition_note}</p></div>
-                      )}
-                    </div>
-                  )}
+                {(item.result.brand || item.result.model || item.result.condition_note) && (
+                  <div className="grid grid-cols-2 gap-3 pt-1 border-t border-gray-100">
+                    {item.result.brand && (
+                      <div><p className="text-xs text-gray-400 font-medium">Brand</p><p className="text-black text-sm">{item.result.brand}</p></div>
+                    )}
+                    {item.result.model && (
+                      <div><p className="text-xs text-gray-400 font-medium">Model</p><p className="text-black text-sm">{item.result.model}</p></div>
+                    )}
+                    {item.result.condition_note && (
+                      <div className="col-span-2"><p className="text-xs text-gray-400 font-medium">Condition</p><p className="text-black text-sm">{item.result.condition_note}</p></div>
+                    )}
+                  </div>
+                )}
 
-                  {activeItem.result.lane === 'card' && activeItem.result.card_details && (
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t-2 border-black">
-                      {activeItem.result.card_details.set_name && (
-                        <div><p className="text-xs text-gray-400 font-medium">Set</p><p className="text-black text-sm">{activeItem.result.card_details.set_name}</p></div>
-                      )}
-                      {activeItem.result.card_details.card_number && (
-                        <div><p className="text-xs text-gray-400 font-medium">Card #</p><p className="text-black text-sm">{activeItem.result.card_details.card_number}</p></div>
-                      )}
-                      {activeItem.result.card_details.printing && (
-                        <div><p className="text-xs text-gray-400 font-medium">Printing</p><p className="text-black text-sm">{activeItem.result.card_details.printing}</p></div>
-                      )}
-                      {activeItem.result.card_details.language && (
-                        <div><p className="text-xs text-gray-400 font-medium">Language</p><p className="text-black text-sm">{activeItem.result.card_details.language}</p></div>
-                      )}
-                    </div>
-                  )}
+                {item.result.lane === 'card' && item.result.card_details && (
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t-2 border-black">
+                    {item.result.card_details.set_name && (
+                      <div><p className="text-xs text-gray-400 font-medium">Set</p><p className="text-black text-sm">{item.result.card_details.set_name}</p></div>
+                    )}
+                    {item.result.card_details.card_number && (
+                      <div><p className="text-xs text-gray-400 font-medium">Card #</p><p className="text-black text-sm">{item.result.card_details.card_number}</p></div>
+                    )}
+                    {item.result.card_details.printing && (
+                      <div><p className="text-xs text-gray-400 font-medium">Printing</p><p className="text-black text-sm">{item.result.card_details.printing}</p></div>
+                    )}
+                    {item.result.card_details.language && (
+                      <div><p className="text-xs text-gray-400 font-medium">Language</p><p className="text-black text-sm">{item.result.card_details.language}</p></div>
+                    )}
+                  </div>
+                )}
 
-                  {activeItem.result.reasoning && (
-                    <p className="text-gray-400 text-xs pt-2 border-t border-gray-100 leading-relaxed">{activeItem.result.reasoning}</p>
-                  )}
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
+                {item.result.reasoning && (
+                  <p className="text-gray-400 text-xs pt-2 border-t border-gray-100 leading-relaxed">{item.result.reasoning}</p>
+                )}
+              </>
+            )}
+          </>
+        )}
+      />
     </div>
   )
 }
