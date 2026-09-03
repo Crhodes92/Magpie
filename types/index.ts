@@ -136,6 +136,8 @@ export interface Haul {
   id: string
   created_by: string
   name: string
+  location_label?: string | null
+  name_is_auto?: boolean
   lat: number | null
   lng: number | null
   started_at: string

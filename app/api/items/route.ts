@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MOCK_ITEMS } from '@/lib/mock-data'
-import { resolveHaulId } from '@/lib/hauls'
+import { resolveHaulId, refreshHaulName } from '@/lib/hauls'
 import { resolveAutoTags } from '@/lib/tags'
 
 export async function GET(req: NextRequest) {
@@ -77,6 +77,8 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (itemError) return NextResponse.json({ error: itemError.message }, { status: 500 })
+
+  if (item.haul_id) await refreshHaulName(supabase, item.haul_id)
 
   if (item.lane === 'card' && cardDetailsInput) {
     const { error: cdError } = await supabase

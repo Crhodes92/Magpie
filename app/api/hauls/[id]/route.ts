@@ -69,7 +69,10 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   const body = await req.json()
   const { name, notes } = body
   const patch: Record<string, unknown> = {}
-  if (name !== undefined) patch.name = name
+  if (name !== undefined) {
+    patch.name = name
+    patch.name_is_auto = false // user took over naming — stop overwriting it as items are added
+  }
   if (notes !== undefined) patch.notes = notes
 
   const { data, error } = await supabase

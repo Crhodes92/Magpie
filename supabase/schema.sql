@@ -8,15 +8,17 @@ create extension if not exists "pg_trgm";
 -- ============================================================
 
 create table if not exists hauls (
-  id           uuid primary key default gen_random_uuid(),
-  created_by   uuid not null references auth.users(id),
-  name         text not null,
-  lat          numeric,
-  lng          numeric,
-  started_at   timestamptz not null default now(),
-  ended_at     timestamptz not null default now(),
-  notes        text,
-  created_at   timestamptz not null default now()
+  id             uuid primary key default gen_random_uuid(),
+  created_by     uuid not null references auth.users(id),
+  name           text not null,
+  location_label text,
+  name_is_auto   boolean not null default true,
+  lat            numeric,
+  lng            numeric,
+  started_at     timestamptz not null default now(),
+  ended_at       timestamptz not null default now(),
+  notes          text,
+  created_at     timestamptz not null default now()
 );
 
 create table if not exists profiles (
