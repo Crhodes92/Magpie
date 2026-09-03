@@ -3,9 +3,10 @@
 import { useState, useEffect, useCallback, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Filter, Download, Plus, Package, ArrowLeft, ArrowRight, AlertTriangle } from 'lucide-react'
+import { Search, Filter, Download, Plus, Package, ArrowLeft, ArrowRight, AlertTriangle, Lock } from 'lucide-react'
 import StatusBadge from '@/components/StatusBadge'
 import ItemTags from '@/components/ItemTags'
+import { useToast } from '@/components/Toast'
 import type { Item, ItemStatus } from '@/types'
 
 const STATUS_OPTIONS: Array<{ value: string; label: string }> = [
@@ -23,6 +24,7 @@ interface HaulSummary {
   name: string
   started_at: string | null
   ended_at: string | null
+  ended: boolean
   item_count: number
   spend: number
   profit: number
@@ -150,7 +152,10 @@ function AlbumTile({ haul, onOpen }: { haul: HaulSummary; onOpen: () => void }) 
           ))
         )}
       </div>
-      <p className="text-black font-black text-sm leading-snug truncate">{haul.name}</p>
+      <div className="flex items-center gap-1.5">
+        <p className="text-black font-black text-sm leading-snug truncate">{haul.name}</p>
+        {haul.ended && <Lock size={11} className="text-gray-400 shrink-0" aria-label="Ended" />}
+      </div>
       <div className="flex items-center gap-2 text-xs text-gray-400 font-medium mt-0.5">
         <span>{relativeDate(haul.started_at)}</span>
         <span>·</span>
@@ -165,6 +170,8 @@ function HaulsPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const openHaulId = searchParams.get('haul')
+  const showToast = useToast()
+  const [ending, setEnding] = useState(false)
 
   const [statusFilter, setStatusFilter] = useState<string>('acquired')
   const [laneFilter, setLaneFilter] = useState<string>('')
@@ -221,6 +228,25 @@ function HaulsPageInner() {
 
   useEffect(() => { load() }, [load])
 
+  async function endHaul() {
+    if (!openHaulId || openHaulId === 'ungrouped') return
+    setEnding(true)
+    try {
+      const res = await fetch(`/api/hauls/${openHaulId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ended: true }),
+      })
+      const body = await res.json()
+      if (!res.ok) throw new Error(body?.error ?? `Failed to end haul (${res.status})`)
+      showToast('Haul ended — new items will start a fresh haul', 'success')
+      await load()
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to end haul', 'error')
+    }
+    setEnding(false)
+  }
+
   const selectClass = "bg-white border-2 border-black rounded-lg px-3 py-2 text-sm text-black focus:outline-none focus:ring-2 focus:ring-yellow-400"
 
   const pendingCheckout = openHaul?.items.filter(i => i.status === 'scouted').length ?? 0
@@ -230,16 +256,31 @@ function HaulsPageInner() {
       <div className="max-w-3xl mx-auto px-4 py-6">
         <div className="flex items-center justify-between mb-6">
           {openHaul ? (
-            <div className="flex items-center gap-3">
-              <button onClick={() => router.push('/hauls')} className="text-gray-400 hover:text-black transition-colors">
+            <div className="flex items-center gap-3 min-w-0">
+              <button onClick={() => router.push('/hauls')} className="text-gray-400 hover:text-black transition-colors shrink-0">
                 <ArrowLeft size={20} />
               </button>
-              <h1 className="text-2xl font-black text-black">{openHaul.name}</h1>
+              <h1 className="text-2xl font-black text-black truncate">{openHaul.name}</h1>
+              {openHaul.ended && (
+                <span className="flex items-center gap-1 text-xs font-bold text-gray-400 bg-gray-100 border border-gray-300 rounded-full px-2 py-0.5 shrink-0">
+                  <Lock size={11} /> Ended
+                </span>
+              )}
             </div>
           ) : (
             <h1 className="text-2xl font-black text-black">Hauls</h1>
           )}
           <div className="flex gap-2">
+            {openHaul && !openHaul.ended && openHaulId !== 'ungrouped' && (
+              <button
+                onClick={endHaul}
+                disabled={ending}
+                className="flex items-center gap-1.5 text-gray-500 hover:text-black text-sm px-3 py-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all disabled:opacity-50"
+              >
+                <Lock size={14} />
+                {ending ? 'Ending…' : 'End haul'}
+              </button>
+            )}
             <a
               href="/api/export"
               className="flex items-center gap-1.5 text-gray-500 hover:text-black text-sm px-3 py-2 bg-white border-2 border-black rounded-lg shadow-[2px_2px_0_0_#000] hover:shadow-none hover:translate-x-[2px] hover:translate-y-[2px] transition-all"

@@ -13,6 +13,7 @@ create table if not exists hauls (
   name           text not null,
   location_label text,
   name_is_auto   boolean not null default true,
+  ended          boolean not null default false,
   lat            numeric,
   lng            numeric,
   started_at     timestamptz not null default now(),

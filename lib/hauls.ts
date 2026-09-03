@@ -107,7 +107,9 @@ export async function refreshHaulName(supabase: SupabaseServerClient, haulId: st
 /**
  * Decides which haul a newly-captured item belongs to: the same haul as the
  * user's most recently captured item if within CLUSTER_DISTANCE_MILES (when
- * both have coordinates) or CLUSTER_TIME_HOURS (fallback), otherwise a new one.
+ * both have coordinates) or CLUSTER_TIME_HOURS (fallback), otherwise a new
+ * one. A manually-ended haul never gets auto-joined, regardless of how close
+ * in time/distance the new item is.
  */
 export async function resolveHaulId(
   supabase: SupabaseServerClient,
@@ -118,15 +120,17 @@ export async function resolveHaulId(
 ): Promise<string> {
   const { data: last } = await supabase
     .from('items')
-    .select('haul_id, lat, lng, created_at')
+    .select('haul_id, lat, lng, created_at, hauls(ended)')
     .eq('created_by', userId)
     .not('haul_id', 'is', null)
     .order('created_at', { ascending: false })
     .limit(1)
     .maybeSingle()
 
+  const lastHaulMeta = Array.isArray(last?.hauls) ? last.hauls[0] : last?.hauls
+
   let sameHaul = false
-  if (last?.haul_id) {
+  if (last?.haul_id && !lastHaulMeta?.ended) {
     if (last.lat != null && last.lng != null && lat != null && lng != null) {
       sameHaul = haversineMiles(last.lat, last.lng, lat, lng) <= CLUSTER_DISTANCE_MILES
     } else {
@@ -139,6 +143,11 @@ export async function resolveHaulId(
     await supabase.from('hauls').update({ ended_at: now.toISOString() }).eq('id', last.haul_id)
     return last.haul_id
   }
+
+  // The previous haul is being left behind — either it just exceeded the
+  // time/distance threshold, or it was already manually ended. Either way,
+  // give its name one final refresh now that no more items will land in it.
+  if (last?.haul_id) await refreshHaulName(supabase, last.haul_id)
 
   const locationLabel = lat != null && lng != null ? await reverseGeocode(lat, lng) : null
 

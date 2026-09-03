@@ -7,6 +7,7 @@ interface HaulSummary {
   name: string
   started_at: string | null
   ended_at: string | null
+  ended: boolean
   item_count: number
   spend: number
   profit: number
@@ -20,6 +21,7 @@ function summarize(
   name: string,
   started_at: string | null,
   ended_at: string | null,
+  ended: boolean,
   items: Array<{
     acquired_price: number | null
     sold_price: number | null
@@ -44,7 +46,7 @@ function summarize(
       if (photo) cover_photos.push(photo.url)
     }
   }
-  return { id, name, started_at, ended_at, item_count: items.length, spend, profit, est_value_low: estLow, est_value_high: estHigh, cover_photos }
+  return { id, name, started_at, ended_at, ended, item_count: items.length, spend, profit, est_value_low: estLow, est_value_high: estHigh, cover_photos }
 }
 
 export async function GET(req: NextRequest) {
@@ -57,10 +59,10 @@ export async function GET(req: NextRequest) {
     if (status) items = items.filter(i => i.status === status)
     if (lane) items = items.filter(i => i.lane === lane)
     const grouped = MOCK_HAULS
-      .map(h => summarize(h.id, h.name, h.started_at, h.ended_at, items.filter(i => i.haul_id === h.id).map(i => ({ ...i, item_photos: i.photos }))))
+      .map(h => summarize(h.id, h.name, h.started_at, h.ended_at, h.ended ?? false, items.filter(i => i.haul_id === h.id).map(i => ({ ...i, item_photos: i.photos }))))
       .filter(h => h.item_count > 0)
     const ungroupedItems = items.filter(i => !i.haul_id).map(i => ({ ...i, item_photos: i.photos }))
-    const ungrouped = ungroupedItems.length > 0 ? summarize('ungrouped', 'Ungrouped', null, null, ungroupedItems) : null
+    const ungrouped = ungroupedItems.length > 0 ? summarize('ungrouped', 'Ungrouped', null, null, false, ungroupedItems) : null
     return NextResponse.json({ hauls: grouped, ungrouped })
   }
 
@@ -70,7 +72,7 @@ export async function GET(req: NextRequest) {
 
   const { data: hauls, error: haulsError } = await supabase
     .from('hauls')
-    .select('id, name, started_at, ended_at')
+    .select('id, name, started_at, ended_at, ended')
     .eq('created_by', user.id)
     .order('started_at', { ascending: false })
   if (haulsError) return NextResponse.json({ error: haulsError.message }, { status: 500 })
@@ -94,10 +96,10 @@ export async function GET(req: NextRequest) {
   }
 
   const summaries = (hauls ?? [])
-    .map(h => summarize(h.id, h.name, h.started_at, h.ended_at, byHaul.get(h.id) ?? []))
+    .map(h => summarize(h.id, h.name, h.started_at, h.ended_at, h.ended, byHaul.get(h.id) ?? []))
     .filter(h => h.item_count > 0)
 
-  const ungrouped = ungroupedItems.length > 0 ? summarize('ungrouped', 'Ungrouped', null, null, ungroupedItems) : null
+  const ungrouped = ungroupedItems.length > 0 ? summarize('ungrouped', 'Ungrouped', null, null, false, ungroupedItems) : null
 
   return NextResponse.json({ hauls: summaries, ungrouped })
 }

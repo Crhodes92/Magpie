@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { MOCK_ITEMS, MOCK_HAULS } from '@/lib/mock-data'
+import { refreshHaulName } from '@/lib/hauls'
 
 type Params = { params: Promise<{ id: string }> }
 
@@ -23,13 +24,13 @@ export async function GET(req: NextRequest, { params }: Params) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  let haul: { id: string; name: string; started_at: string | null; ended_at: string | null; notes: string | null }
+  let haul: { id: string; name: string; started_at: string | null; ended_at: string | null; notes: string | null; ended?: boolean }
   if (id === 'ungrouped') {
     haul = { id: 'ungrouped', name: 'Ungrouped', started_at: null, ended_at: null, notes: null }
   } else {
     const { data, error } = await supabase
       .from('hauls')
-      .select('id, name, started_at, ended_at, notes')
+      .select('id, name, started_at, ended_at, notes, ended')
       .eq('id', id)
       .eq('created_by', user.id)
       .single()
@@ -67,13 +68,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { name, notes } = body
+  const { name, notes, ended } = body
   const patch: Record<string, unknown> = {}
   if (name !== undefined) {
     patch.name = name
     patch.name_is_auto = false // user took over naming — stop overwriting it as items are added
   }
   if (notes !== undefined) patch.notes = notes
+  if (ended !== undefined) patch.ended = ended
 
   const { data, error } = await supabase
     .from('hauls')
@@ -84,5 +86,14 @@ export async function PATCH(req: NextRequest, { params }: Params) {
     .single()
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Manually completing a haul is a naming checkpoint too — give the name
+  // one final refresh from its current items now that it's closed for good.
+  if (ended === true) {
+    await refreshHaulName(supabase, id)
+    const { data: refreshed } = await supabase.from('hauls').select().eq('id', id).single()
+    if (refreshed) return NextResponse.json(refreshed)
+  }
+
   return NextResponse.json(data)
 }
