@@ -80,7 +80,7 @@ function ItemTile({ item }: { item: Item }) {
   const label = dealLabel(item)
   return (
     <Link
-      href={`/hauls/${item.id}`}
+      href={`/items/${item.id}`}
       className={`relative group flex flex-col bg-white rounded-xl border-2 overflow-hidden transition-all hover:brightness-95 ${dealBorder(item)} ${dealShadow(item)}`}
     >
       <ItemTags tags={item.tags} />

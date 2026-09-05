@@ -9,6 +9,7 @@ import ConfidenceBadge from '@/components/ConfidenceBadge'
 import ItemTags from '@/components/ItemTags'
 import CompLogger from '@/components/CompLogger'
 import SoldForm from '@/components/SoldForm'
+import { useToast } from '@/components/Toast'
 import type { Item, ItemStatus, Comp } from '@/types'
 
 function buildEbayUrl(query: string) {
@@ -31,6 +32,7 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
   const [comps, setComps] = useState<Comp[]>([])
   const [loading, setLoading] = useState(true)
   const router = useRouter()
+  const showToast = useToast()
 
   async function load() {
     const res = await fetch(`/api/items/${id}`)
@@ -55,8 +57,16 @@ export default function ItemDetailPage({ params }: { params: Promise<{ id: strin
 
   async function deleteItem() {
     if (!confirm('Delete this item?')) return
-    await fetch(`/api/items/${id}`, { method: 'DELETE' })
-    router.push('/hauls')
+    try {
+      const res = await fetch(`/api/items/${id}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? `Failed to delete (${res.status})`)
+      }
+      router.push('/hauls')
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Failed to delete item', 'error')
+    }
   }
 
   if (loading) {

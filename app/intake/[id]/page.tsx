@@ -230,7 +230,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
 
     setSaving(false)
     showToast(isNew ? 'Item added' : 'Item updated', 'success')
-    router.push(itemId ? `/hauls/${itemId}` : '/hauls')
+    router.push(itemId ? `/items/${itemId}` : '/hauls')
   }
 
   if (loading) {
@@ -248,7 +248,7 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     <div className="min-h-screen bg-white pb-24 sm:pb-8">
       <div className="max-w-lg mx-auto px-4 py-6">
         <div className="flex items-center gap-3 mb-6">
-          <Link href={isNew ? '/hauls' : `/hauls/${id}`} className="text-gray-400 hover:text-black transition-colors">
+          <Link href={isNew ? '/hauls' : `/items/${id}`} className="text-gray-400 hover:text-black transition-colors">
             <ArrowLeft size={20} />
           </Link>
           <h1 className="text-2xl font-black text-black">{isNew ? 'Add item' : 'Edit item'}</h1>

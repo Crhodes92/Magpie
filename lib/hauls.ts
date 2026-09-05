@@ -5,7 +5,7 @@ type SupabaseServerClient = Awaited<ReturnType<typeof createClient>>
 export const CLUSTER_DISTANCE_MILES = 2
 export const CLUSTER_TIME_HOURS = 3
 
-function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
+export function haversineMiles(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 3958.8
   const dLat = (lat2 - lat1) * Math.PI / 180
   const dLng = (lng2 - lng1) * Math.PI / 180
