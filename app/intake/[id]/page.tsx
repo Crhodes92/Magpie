@@ -167,6 +167,25 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
     setPendingPhotos(prev => prev.map((p, i) => ({ ...p, isPrimary: i === index })))
   }
 
+  function removePendingPhoto(index: number) {
+    setPendingPhotos(prev => prev.filter((_, i) => i !== index))
+  }
+
+  async function removeExistingPhoto(photoId: string) {
+    const previous = existingPhotos
+    setExistingPhotos(prev => prev.filter(p => p.id !== photoId))
+    try {
+      const res = await fetch(`/api/photos/${photoId}`, { method: 'DELETE' })
+      if (!res.ok) {
+        const body = await res.json().catch(() => null)
+        throw new Error(body?.error ?? `Failed to remove photo (${res.status})`)
+      }
+    } catch (err) {
+      setExistingPhotos(previous)
+      showToast(err instanceof Error ? err.message : 'Failed to remove photo', 'error')
+    }
+  }
+
   async function uploadPhotos(itemId: string) {
     for (const photo of pendingPhotos) {
       const fd = new FormData()
@@ -303,6 +322,14 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
               {existingPhotos.map(p => (
                 <div key={p.id} className="relative w-20 h-20 rounded-lg overflow-hidden border-2 border-black">
                   <img src={p.url} alt="" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => removeExistingPhoto(p.id)}
+                    className="absolute top-1 right-1 bg-white/90 rounded-full p-0.5 text-gray-500 hover:text-red-500"
+                    title="Remove photo"
+                  >
+                    <X size={14} />
+                  </button>
                   {p.is_primary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-yellow-400 text-black font-bold py-0.5">Primary</span>}
                 </div>
               ))}
@@ -312,10 +339,18 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
                   <button
                     type="button"
                     onClick={() => setPrimary(i)}
-                    className="absolute top-1 right-1 text-yellow-500 hover:text-yellow-400"
+                    className="absolute top-1 left-1 bg-white/90 rounded-full p-0.5 text-yellow-500 hover:text-yellow-400"
                     title="Set as primary"
                   >
                     <Star size={14} fill={p.isPrimary ? 'currentColor' : 'none'} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removePendingPhoto(i)}
+                    className="absolute top-1 right-1 bg-white/90 rounded-full p-0.5 text-gray-500 hover:text-red-500"
+                    title="Remove photo"
+                  >
+                    <X size={14} />
                   </button>
                   {p.isPrimary && <span className="absolute bottom-0 inset-x-0 text-center text-xs bg-yellow-400 text-black font-bold py-0.5">Primary</span>}
                 </div>

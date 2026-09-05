@@ -37,7 +37,10 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
         const items: Item[] = data.items ?? []
         setRows(items.map(item => {
           const lowConfidence = (item.ai_confidence ?? 0) < MAX_BID_CONFIDENCE_THRESHOLD || item.max_bid == null
-          return { item, checked: true, price: lowConfidence ? 0 : (item.max_bid ?? 0), lowConfidence }
+          // Low-confidence items start unchecked with no price — there's no
+          // sensible default to bid, so this needs an active decision rather
+          // than silently recording a "bought for $0" the user never chose.
+          return { item, checked: !lowConfidence, price: lowConfidence ? 0 : (item.max_bid ?? 0), lowConfidence }
         }))
       })
       .catch(err => setLoadError(err instanceof Error ? err.message : 'Failed to load haul'))
@@ -74,6 +77,14 @@ export default function CheckoutPage({ params }: { params: Promise<{ id: string 
   }
 
   async function confirm() {
+    const zeroPriced = rows.filter(r => r.checked && r.price <= 0)
+    if (zeroPriced.length > 0) {
+      setSubmitError(
+        `Set a price (or uncheck) before confirming: ${zeroPriced.map(r => r.item.title ?? 'Untitled').join(', ')}`
+      )
+      return
+    }
+
     setSubmitting(true)
     setSubmitError(null)
     const decisions = rows.map(r => ({ item_id: r.item.id, bought: r.checked, price: r.checked ? r.price : null }))
