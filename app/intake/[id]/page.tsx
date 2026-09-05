@@ -3,7 +3,7 @@
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Camera, Star, Loader2, X } from 'lucide-react'
+import { ArrowLeft, Camera, Star, Loader2, X, ChevronDown } from 'lucide-react'
 import { useToast } from '@/components/Toast'
 import type { Item, ItemLane } from '@/types'
 
@@ -23,6 +23,16 @@ function resizeImage(file: File, maxPx = 1600): Promise<Blob> {
     img.src = url
   })
 }
+
+// Listed/Sold are deliberately excluded — those transitions need their own
+// dedicated forms (listed_price, sold_price/sold_at/fees) rather than a bare
+// status flip that would leave those fields empty.
+const STATUS_OPTIONS = [
+  { value: 'scouted', label: 'Scouted' },
+  { value: 'acquired', label: 'Acquired' },
+  { value: 'passed', label: 'Passed' },
+  { value: 'scrapped', label: 'Scrapped' },
+]
 
 const EBAY_CONDITIONS = [
   { id: '1000', label: 'New' },
@@ -255,20 +265,34 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Lane toggle */}
-          <div>
-            <label className={labelClass}>Lane</label>
-            <div className="flex rounded-xl overflow-hidden border-2 border-black">
-              {(['general', 'card'] as ItemLane[]).map(l => (
-                <button
-                  key={l}
-                  type="button"
-                  onClick={() => setLane(l)}
-                  className={`flex-1 py-2.5 text-sm font-bold transition-colors ${lane === l ? 'bg-yellow-400 text-black' : 'bg-white text-gray-400 hover:text-black'}`}
-                >
-                  {l === 'card' ? 'Trading Card' : 'General'}
-                </button>
-              ))}
+          {/* Lane + Status */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Lane</label>
+              <div className="flex rounded-xl overflow-hidden border-2 border-black h-[42px]">
+                {(['general', 'card'] as ItemLane[]).map(l => (
+                  <button
+                    key={l}
+                    type="button"
+                    onClick={() => setLane(l)}
+                    className={`flex-1 text-sm font-bold transition-colors ${lane === l ? 'bg-yellow-400 text-black' : 'bg-white text-gray-400 hover:text-black'}`}
+                  >
+                    {l === 'card' ? 'Card' : 'General'}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>Status</label>
+              {status === 'listed' || status === 'sold' ? (
+                <select disabled value={status} className={`${inputClass} opacity-60`} title="Manage listed/sold items from the item detail page">
+                  <option value={status}>{status === 'listed' ? 'Listed' : 'Sold'}</option>
+                </select>
+              ) : (
+                <select value={status} onChange={e => setStatus(e.target.value)} className={inputClass}>
+                  {STATUS_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              )}
             </div>
           </div>
 
@@ -326,6 +350,32 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
               <div>
                 <label className={labelClass}>Model</label>
                 <input type="text" value={model} onChange={e => setModel(e.target.value)} className={inputClass} />
+              </div>
+            </div>
+          </div>
+
+          {/* Acquisition */}
+          <div className="space-y-3">
+            <p className="text-xs font-black text-black uppercase tracking-wide">Acquisition</p>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>Cost paid *</label>
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
+                  <input type="number" step="0.01" min="0" value={acquiredPrice} onChange={e => setAcquiredPrice(e.target.value)} className={`${inputClass} pl-7`} placeholder="0.00" />
+                </div>
+              </div>
+              <div>
+                <label className={labelClass}>Date</label>
+                <input type="date" value={acquiredAt} onChange={e => setAcquiredAt(e.target.value)} className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Source</label>
+                <input type="text" value={acquiredSource} onChange={e => setAcquiredSource(e.target.value)} placeholder="Garage sale, estate…" className={inputClass} />
+              </div>
+              <div>
+                <label className={labelClass}>Storage location</label>
+                <input type="text" value={storageLocation} onChange={e => setStorageLocation(e.target.value)} placeholder="Bin 4" className={inputClass} />
               </div>
             </div>
           </div>
@@ -393,55 +443,34 @@ export default function IntakePage({ params }: { params: Promise<{ id: string }>
             </div>
           )}
 
-          {/* Acquisition */}
-          <div className="space-y-3">
-            <p className="text-xs font-black text-black uppercase tracking-wide">Acquisition</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>Cost paid *</label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-bold">$</span>
-                  <input type="number" step="0.01" min="0" value={acquiredPrice} onChange={e => setAcquiredPrice(e.target.value)} className={`${inputClass} pl-7`} placeholder="0.00" />
-                </div>
-              </div>
-              <div>
-                <label className={labelClass}>Date</label>
-                <input type="date" value={acquiredAt} onChange={e => setAcquiredAt(e.target.value)} className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Source</label>
-                <input type="text" value={acquiredSource} onChange={e => setAcquiredSource(e.target.value)} placeholder="Garage sale, estate…" className={inputClass} />
-              </div>
-              <div>
-                <label className={labelClass}>Storage location</label>
-                <input type="text" value={storageLocation} onChange={e => setStorageLocation(e.target.value)} placeholder="Bin 4" className={inputClass} />
-              </div>
-            </div>
-          </div>
-
           <div>
             <label className={labelClass}>Notes</label>
             <textarea rows={3} value={notes} onChange={e => setNotes(e.target.value)} className={inputClass} placeholder="Any extra notes…" />
           </div>
 
-          {/* eBay listing */}
-          <div className="space-y-3">
-            <p className="text-xs font-black text-black uppercase tracking-wide">eBay listing</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className={labelClass}>eBay category ID</label>
-                <input type="text" value={ebayCategoryId} onChange={e => setEbayCategoryId(e.target.value)} placeholder="e.g. 183454" className={inputClass} />
+          {/* eBay listing — collapsed by default, only needed once when actually prepping a listing */}
+          <details className="group border-2 border-black rounded-xl overflow-hidden">
+            <summary className="cursor-pointer select-none list-none marker:hidden [&::-webkit-details-marker]:hidden px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors">
+              <span className="text-xs font-black text-black uppercase tracking-wide">eBay listing</span>
+              <ChevronDown size={16} className="text-gray-400 transition-transform group-open:rotate-180" />
+            </summary>
+            <div className="p-4 space-y-3 border-t-2 border-black">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass}>eBay category ID</label>
+                  <input type="text" value={ebayCategoryId} onChange={e => setEbayCategoryId(e.target.value)} placeholder="e.g. 183454" className={inputClass} />
+                </div>
+                <div>
+                  <label className={labelClass}>Condition</label>
+                  <select value={ebayConditionId} onChange={e => setEbayConditionId(e.target.value)} className={inputClass}>
+                    <option value="">Select…</option>
+                    {EBAY_CONDITIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className={labelClass}>Condition</label>
-                <select value={ebayConditionId} onChange={e => setEbayConditionId(e.target.value)} className={inputClass}>
-                  <option value="">Select…</option>
-                  {EBAY_CONDITIONS.map(c => <option key={c.id} value={c.id}>{c.label}</option>)}
-                </select>
-              </div>
+              <p className="text-xs text-gray-400">Find the category ID via eBay&apos;s category search — needed for the eBay CSV export.</p>
             </div>
-            <p className="text-xs text-gray-400">Find the category ID via eBay&apos;s category search — needed for the eBay CSV export.</p>
-          </div>
+          </details>
 
           {/* Tags */}
           <div>
